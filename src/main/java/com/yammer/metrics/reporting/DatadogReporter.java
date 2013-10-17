@@ -46,6 +46,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   private static final Logger LOG = LoggerFactory
       .getLogger(DatadogReporter.class);
   private final VirtualMachineMetrics vm;
+  private final MetricNameFormatter metricNameFormatter;
 
   private static final JsonFactory jsonFactory = new JsonFactory();
   private static final ObjectMapper mapper = new ObjectMapper(jsonFactory);
@@ -53,7 +54,8 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   public DatadogReporter(MetricsRegistry metricsRegistry,
       MetricPredicate predicate, VirtualMachineMetrics vm, Transport transport,
-      Clock clock, String host, EnumSet<Expansions> expansions, Boolean printVmMetrics) {
+      Clock clock, String host, EnumSet<Expansions> expansions, Boolean printVmMetrics,
+      MetricNameFormatter metricNameFormatter) {
     super(metricsRegistry, "datadog-reporter");
     this.vm = vm;
     this.transport = transport;
@@ -62,6 +64,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     this.host = host;
     this.expansions = expansions;
     this.printVmMetrics = printVmMetrics;
+    this.metricNameFormatter = metricNameFormatter;
   }
 
   @Override
@@ -198,7 +201,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   private void pushCounter(MetricName metricName, Long count, Long epoch,
       String... path) {
-    pushCounter(sanitizeName(metricName, path), count, epoch);
+    pushCounter(metricNameFormatter.format(metricName, path), count, epoch);
 
   }
 
@@ -213,7 +216,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   private void pushGauge(MetricName metricName, Number count, Long epoch,
       String... path) {
-    sendGauge(sanitizeName(metricName, path), count, epoch);
+    sendGauge(metricNameFormatter.format(metricName, path), count, epoch);
   }
 
   private void pushGauge(String name, long count, long epoch) {
@@ -227,28 +230,6 @@ public class DatadogReporter extends AbstractPollingReporter implements
     } catch (Exception e) {
       LOG.error("Error writing gauge", e);
     }
-  }
-
-  protected String sanitizeName(MetricName name, String... path) {
-    final StringBuilder sb = new StringBuilder(name.getGroup());
-    sb.append('.');
-    sb.append(name.getType()).append('.');
-
-    if (name.hasScope()) {
-      sb.append(name.getScope()).append('.');
-    }
-
-    String[] metricParts = name.getName().split("\\[");
-    sb.append(metricParts[0]);
-
-    for (String part : path) {
-      sb.append('.').append(part);
-    }
-
-    for (int i = 1; i < metricParts.length; i++) {
-      sb.append('[').append(metricParts[i]);
-    }
-    return sb.toString();
   }
 
   public static enum Expansions {
@@ -289,6 +270,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     private String apiKey = null;
     private Clock clock = Clock.defaultClock();
     private MetricPredicate predicate = MetricPredicate.ALL;
+    private MetricNameFormatter metricNameFormatter = new DefaultMetricNameFormatter();
 
     public Builder withHost(String host) {
       this.host = host;
@@ -325,6 +307,11 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
+    public Builder withMetricNameFormatter(MetricNameFormatter formatter) {
+      this.metricNameFormatter = formatter;
+      return this;
+    }
+
     public DatadogReporter build() {
       return new DatadogReporter(
         Metrics.defaultRegistry(),
@@ -334,7 +321,8 @@ public class DatadogReporter extends AbstractPollingReporter implements
         this.clock,
         this.host,
         this.expansions,
-        this.vmMetrics);
+        this.vmMetrics,
+        metricNameFormatter);
     }
   }
 }
