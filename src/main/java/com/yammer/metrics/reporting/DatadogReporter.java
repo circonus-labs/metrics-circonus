@@ -282,7 +282,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     }
   }
 
-  public class Builder {
+  public static class Builder {
     private String host = null;
     private EnumSet<Expansions> expansions = Expansions.ALL;
     private Boolean vmMetrics = true;
