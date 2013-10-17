@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,8 @@ import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricPredicate;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.VirtualMachineMetrics;
+import com.yammer.metrics.core.Timer;
+import com.yammer.metrics.reporting.DatadogReporter.Expansions;
 
 public class DatadogReporterTest {
 
@@ -41,11 +44,11 @@ public class DatadogReporterTest {
     vm = VirtualMachineMetrics.getInstance();
     ddNoHost = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
         VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        null);
+        null, DatadogReporter.Expansions.ALL, true);
 
     dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
         VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        "hostname");
+        "hostname", DatadogReporter.Expansions.ALL, true);
   }
 
   @SuppressWarnings("unchecked")
@@ -99,6 +102,44 @@ public class DatadogReporterTest {
   }
 
   @Test
+  public void testTimerExpansion() throws JsonParseException, JsonMappingException,
+      IOException {
+    // TODO: punting on testing actual values, as Timer is a class not an interface,
+    // and requires a threadPool and all that.
+    Timer timer = metricsRegistry.newTimer(DatadogReporterTest.class, "my.timer");
+    timer.update(1, TimeUnit.MILLISECONDS);
+
+    for (Expansions expansion: Expansions.ALL) {
+      expansionTestHelper(expansion);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void expansionTestHelper(Expansions expansion) throws JsonParseException,
+      JsonMappingException, IOException {
+    MockTransport transport = new MockTransport();
+    DatadogReporter dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
+      VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
+      "hostname", EnumSet.of(expansion), false);
+
+    assertEquals(0, transport.numRequests);
+    dd.run();
+    assertEquals(1, transport.numRequests);
+
+    String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
+    Map<String, Object> request = new ObjectMapper().readValue(body,
+        HashMap.class);
+    List<Object> series = (List<Object>) request.get("series");
+
+    assertEquals(1, series.size());
+    Map<String, Object> metric = (Map<String, Object>) series.get(0);
+
+    assertEquals("com.yammer.metrics.reporting.DatadogReporterTest.my.timer." + expansion.toString(),
+      metric.get("metric"));
+    assertEquals(expansion.equals(Expansions.COUNT) ? "counter" : "gauge", metric.get("type"));
+  }
+
+  @Test
   public void testSupplyHostname() throws UnsupportedEncodingException {
     Counter counter = metricsRegistry.newCounter(DatadogReporterTest.class,
         "my.counter");
@@ -123,7 +164,7 @@ public class DatadogReporterTest {
     Meter s = metricsRegistry.newMeter(String.class,
         "meter[with,tags]", "ticks", TimeUnit.SECONDS);
     s.mark();
-    
+
     ddNoHost.printVmMetrics = false;
     ddNoHost.run();
     String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
@@ -131,12 +172,12 @@ public class DatadogReporterTest {
     Map<String, Object> request = new ObjectMapper().readValue(body,
         HashMap.class);
     List<Object> series = (List<Object>) request.get("series");
-    
+
     for(Object o : series) {
       HashMap<String, Object> rec = (HashMap<String, Object>) o;
       List<String> tags = (List<String>) rec.get("tags");
       String name = rec.get("metric").toString();
-      
+
       assertTrue(name.startsWith("java.lang.String.meter"));
       assertEquals("with", tags.get(0));
       assertEquals("tags", tags.get(1));
