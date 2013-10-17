@@ -7,17 +7,10 @@
   <packaging>jar</packaging>
 	<name>Datadog Metrics Support</name>
 	<properties>
-		<metrics.version>2.0.0</metrics.version>
-		<jackson.version>2.0.1</jackson.version>
+		<metrics.version>2.2.0</metrics.version>
+		<jackson.version>2.2.2</jackson.version>
 	</properties>
 	<build>
-		<extensions>
-			<extension>
-				<groupId>org.kuali.maven</groupId>
-				<artifactId>kuali-wagon-s3</artifactId>
-				<version>1.0.22</version>
-			</extension>
-		</extensions>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -41,7 +34,7 @@
 		<dependency>
 			<groupId>com.ning</groupId>
 			<artifactId>async-http-client</artifactId>
-			<version>1.7.4</version>
+			<version>1.7.20</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -61,14 +54,4 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
-	<distributionManagement>
-		<snapshotRepository>
-			<uniqueVersion>false</uniqueVersion>
-			<id>maven.vistarmedia.com</id>
-			<name>Vistar Snapshots</name>
-			<url>s3://maven.vistarmedia.com/maven/snapshots</url>
-			<layout>default</layout>
-		</snapshotRepository>
-	</distributionManagement>
 </project>
