@@ -44,11 +44,11 @@ public class DatadogReporterTest {
     vm = VirtualMachineMetrics.getInstance();
     ddNoHost = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
         VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        null, DatadogReporter.Expansions.ALL, true);
+        null, DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter());
 
     dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
         VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        "hostname", DatadogReporter.Expansions.ALL, true);
+        "hostname", DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter());
   }
 
   @SuppressWarnings("unchecked")
@@ -120,7 +120,7 @@ public class DatadogReporterTest {
     MockTransport transport = new MockTransport();
     DatadogReporter dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
       VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-      "hostname", EnumSet.of(expansion), false);
+      "hostname", EnumSet.of(expansion), false, new DefaultMetricNameFormatter());
 
     assertEquals(0, transport.numRequests);
     dd.run();
