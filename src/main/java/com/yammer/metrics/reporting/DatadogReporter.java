@@ -1,6 +1,7 @@
 package com.yammer.metrics.reporting;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +42,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   private final String host;
   protected final MetricPredicate predicate;
   protected final Transport transport;
+  protected final EnumSet<Expansions> expansions;
   private static final Logger LOG = LoggerFactory
       .getLogger(DatadogReporter.class);
   private final VirtualMachineMetrics vm;
@@ -49,44 +51,17 @@ public class DatadogReporter extends AbstractPollingReporter implements
   private static final ObjectMapper mapper = new ObjectMapper(jsonFactory);
   private JsonGenerator jsonOut;
 
-  public static void enable(long period, TimeUnit unit, String apiKey) {
-    enable(period, unit, apiKey, null);
-  }
-
-  public static void enable(long period, TimeUnit unit, String apiKey,
-      String host) {
-    DatadogReporter dd = new DatadogReporter(Metrics.defaultRegistry(), apiKey,
-        host);
-    dd.start(period, unit);
-  }
-
-  public static void enableForEc2Instance(long period, TimeUnit unit,
-      String apiKey) throws IOException {
-    String hostName = AwsHelper.getEc2InstanceId();
-    DatadogReporter dd = new DatadogReporter(Metrics.defaultRegistry(), apiKey,
-        hostName);
-    dd.start(period, unit);
-  }
-
-  public DatadogReporter(MetricsRegistry registry, String apiKey) {
-    this(registry, apiKey, null);
-  }
-
-  public DatadogReporter(MetricsRegistry registry, String apiKey, String host) {
-    this(registry, MetricPredicate.ALL, VirtualMachineMetrics.getInstance(),
-        new HttpTransport("app.datadoghq.com", apiKey), Clock.defaultClock(),
-        host);
-  }
-
   public DatadogReporter(MetricsRegistry metricsRegistry,
       MetricPredicate predicate, VirtualMachineMetrics vm, Transport transport,
-      Clock clock, String host) {
+      Clock clock, String host, EnumSet<Expansions> expansions, Boolean printVmMetrics) {
     super(metricsRegistry, "datadog-reporter");
     this.vm = vm;
     this.transport = transport;
     this.predicate = predicate;
     this.clock = clock;
     this.host = host;
+    this.expansions = expansions;
+    this.printVmMetrics = printVmMetrics;
   }
 
   @Override
@@ -137,11 +112,13 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   public void processMeter(MetricName name, Metered meter, Long epoch)
       throws Exception {
-    pushCounter(name, meter.count(), epoch, "count");
-    pushGauge(name, meter.meanRate(), epoch, "meanRate");
-    pushGauge(name, meter.oneMinuteRate(), epoch, "1MinuteRate");
-    pushGauge(name, meter.fiveMinuteRate(), epoch, "5MinuteRate");
-    pushGauge(name, meter.fifteenMinuteRate(), epoch, "15MinuteRate");
+    if (expansions.contains(Expansions.COUNT))
+      pushCounter(name, meter.count(), epoch, Expansions.COUNT.toString());
+
+    maybeExpand(Expansions.RATE_MEAN, name, meter.meanRate(), epoch);
+    maybeExpand(Expansions.RATE_1_MINUTE, name, meter.oneMinuteRate(), epoch);
+    maybeExpand(Expansions.RATE_5_MINUTE, name, meter.fiveMinuteRate(), epoch);
+    maybeExpand(Expansions.RATE_15_MINUTE, name, meter.fifteenMinuteRate(), epoch);
   }
 
   public void processTimer(MetricName name, Timer timer, Long epoch)
@@ -153,20 +130,25 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   private void pushSummarizable(MetricName name, Summarizable summarizable,
       Long epoch) {
-    pushGauge(name, summarizable.min(), epoch, "min");
-    pushGauge(name, summarizable.max(), epoch, "max");
-    pushGauge(name, summarizable.mean(), epoch, "mean");
-    pushGauge(name, summarizable.stdDev(), epoch, "stddev");
+    maybeExpand(Expansions.MIN, name, summarizable.min(), epoch);
+    maybeExpand(Expansions.MAX, name, summarizable.max(), epoch);
+    maybeExpand(Expansions.MEAN, name, summarizable.mean(), epoch);
+    maybeExpand(Expansions.STD_DEV, name, summarizable.stdDev(), epoch);
   }
 
   private void pushSampling(MetricName name, Sampling sampling, Long epoch) {
     final Snapshot snapshot = sampling.getSnapshot();
-    pushGauge(name, snapshot.getMedian(), epoch, "median");
-    pushGauge(name, snapshot.get75thPercentile(), epoch, "75percentile");
-    pushGauge(name, snapshot.get95thPercentile(), epoch, "95percentile");
-    pushGauge(name, snapshot.get98thPercentile(), epoch, "98percentile");
-    pushGauge(name, snapshot.get99thPercentile(), epoch, "99percentile");
-    pushGauge(name, snapshot.get999thPercentile(), epoch, "999percentile");
+    maybeExpand(Expansions.MEDIAN, name, snapshot.getMedian(), epoch);
+    maybeExpand(Expansions.P75, name, snapshot.get75thPercentile(), epoch);
+    maybeExpand(Expansions.P95, name, snapshot.get95thPercentile(), epoch);
+    maybeExpand(Expansions.P98, name, snapshot.get98thPercentile(), epoch);
+    maybeExpand(Expansions.P99, name, snapshot.get99thPercentile(), epoch);
+    maybeExpand(Expansions.P999, name, snapshot.get999thPercentile(), epoch);
+  }
+
+  private void maybeExpand(Expansions expansion, MetricName name, Number count, Long epoch) {
+    if (expansions.contains(expansion))
+      pushGauge(name, count, epoch, expansion.toString());
   }
 
   protected void pushRegularMetrics(long epoch) {
@@ -269,4 +251,90 @@ public class DatadogReporter extends AbstractPollingReporter implements
     return sb.toString();
   }
 
+  public static enum Expansions {
+    COUNT("count"),
+    RATE_MEAN("meanRate"),
+    RATE_1_MINUTE("1MinuteRate"),
+    RATE_5_MINUTE("1MinuteRate"),
+    RATE_15_MINUTE("1MinuteRate"),
+    MIN("min"),
+    MEAN("mean"),
+    MAX("max"),
+    STD_DEV("stddev"),
+    MEDIAN("median"),
+    P75("p75"),
+    P95("p95"),
+    P98("p98"),
+    P99("p99"),
+    P999("p999");
+
+    public static EnumSet<Expansions> ALL = EnumSet.allOf(Expansions.class);
+
+    private final String displayName;
+
+    private Expansions(String displayName) {
+      this.displayName = displayName;
+    }
+
+    @Override
+    public String toString() {
+      return displayName;
+    }
+  }
+
+  public class Builder {
+    private String host = null;
+    private EnumSet<Expansions> expansions = Expansions.ALL;
+    private Boolean vmMetrics = true;
+    private String apiKey = null;
+    private Clock clock = Clock.defaultClock();
+    private MetricPredicate predicate = MetricPredicate.ALL;
+
+    public Builder withHost(String host) {
+      this.host = host;
+      return this;
+    }
+
+    public Builder withEC2Host() throws IOException {
+      this.host = AwsHelper.getEc2InstanceId();
+      return this;
+    }
+
+    public Builder withExpansions(EnumSet<Expansions> expansions) {
+      this.expansions = expansions;
+      return this;
+    }
+
+    public Builder withVmMetricsEnabled(Boolean enabled) {
+      this.vmMetrics = enabled;
+      return this;
+    }
+
+    public Builder withApiKey(String key) {
+      this.apiKey = key;
+      return this;
+    }
+
+    public Builder withClock(Clock clock) {
+      this.clock = clock;
+      return this;
+    }
+
+    public Builder withPredicate(MetricPredicate predicate) {
+      this.predicate = predicate;
+      return this;
+    }
+
+    public DatadogReporter build() {
+      return new DatadogReporter(
+        Metrics.defaultRegistry(),
+        this.predicate,
+        VirtualMachineMetrics.getInstance(),
+        new HttpTransport("app.datadoghq.com", apiKey),
+        this.clock,
+        this.host,
+        this.expansions,
+        this.vmMetrics);
+    }
+  }
 }
