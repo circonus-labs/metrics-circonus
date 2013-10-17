@@ -94,7 +94,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     Request request = null;
     try {
       request = transport.prepare();
-      jsonOut = jsonFactory.createJsonGenerator(request.getBodyWriter());
+      jsonOut = jsonFactory.createGenerator(request.getBodyWriter());
       jsonOut.writeStartObject();
       jsonOut.writeFieldName("series");
       jsonOut.writeStartArray();
