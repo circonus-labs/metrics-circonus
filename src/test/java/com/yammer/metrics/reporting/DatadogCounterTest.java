@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.yammer.metrics.reporting.model.DatadogCounter;
@@ -21,7 +22,8 @@ public class DatadogCounterTest {
     assertEquals("tag2:value2", tags.get(1));
     assertEquals("tag3:value3", tags.get(2));
   }
-  
+
+  @Ignore("Rely on datadog to strip tags")
   @Test
   public void testStripInvalidCharsFromTags() {
     DatadogCounter counter = new DatadogCounter(
@@ -33,5 +35,5 @@ public class DatadogCounterTest {
     assertEquals("tag2:value2", tags.get(1));
     assertEquals("tag3:value3", tags.get(2));
   }
-  
+
 }
