@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.yammer.metrics.reporting.model.DatadogGauge;
@@ -22,6 +23,8 @@ public class DatadogGaugeTest {
     assertEquals("tag3:value3", tags.get(2));
   }
 
+  /* Ignored since we rely on datadog to strip tags now */
+  @Ignore
   @Test
   public void testStripInvalidCharsFromTags() {
     DatadogGauge gauge = new DatadogGauge(
