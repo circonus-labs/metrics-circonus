@@ -25,16 +25,16 @@ public abstract class DatadogSeries<T extends Number> {
   public DatadogSeries(String name, T count, Long epoch, String host) {
     Matcher matcher = tagPattern.matcher(name);
     this.tags = new ArrayList<String>();
-    
+
     if (matcher.find() && matcher.groupCount() == 2) {
       this.name = matcher.group(1);
       for(String t : matcher.group(2).split("\\,")) {
-        this.tags.add(t.replaceAll("[^a-zA-Z0-9\\:]", ""));
+        this.tags.add(t);
       }
     } else {
       this.name = name;
     }
-    
+
     this.count = count;
     this.epoch = epoch;
     this.host = host;
