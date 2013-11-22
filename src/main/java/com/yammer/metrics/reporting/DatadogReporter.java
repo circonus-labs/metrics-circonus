@@ -106,7 +106,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
       throws Exception {
     Object value = gauge.value();
     if (value instanceof Number) {
-      pushGauge(name, (Number) gauge.value(), epoch);
+      pushGauge(name, (Number) value, epoch);
     } else {
       LOG.debug("Gauge " + name + " had non Number value, skipped");
     }
