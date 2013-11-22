@@ -104,7 +104,12 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   public void processGauge(MetricName name, Gauge<?> gauge, Long epoch)
       throws Exception {
-    pushGauge(name, (Number) gauge.value(), epoch);
+    Object value = gauge.value();
+    if (value instanceof Number) {
+      pushGauge(name, (Number) gauge.value(), epoch);
+    } else {
+      LOG.debug("Gauge " + name + " had non Number value, skipped");
+    }
   }
 
   public void processHistogram(MetricName name, Histogram histogram, Long epoch)
