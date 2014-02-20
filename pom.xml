@@ -8,7 +8,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.coursera</groupId>
     <artifactId>metrics-datadog</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.6-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Datadog Metrics Support</name>
     <description>A Datadog reporter backend for yammer metrics</description>
