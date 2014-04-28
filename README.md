@@ -5,10 +5,18 @@ Simple Metrics reporter that sends reporting info to Datadog.
 
 ~~~scala
 import com.yammer.metrics.reporting.DatadogReporter
+import com.yammer.metrics.reporting.DatadogReporter.Expansions._
 
 ...
+val expansions = EnumSet.of(COUNT, RATE_1_MINUTE, RATE_15_MINUTE, MEDIAN, P95, P99)
+val reporter = new DatadogReporter.Builder()
+  .withEC2Host()
+  .withApiKey(apiKey)
+  .withExpansions(expansions)
+  .withMetricNameFormatter(ShortenedNameFormatter)
+  .build()
 
-DatadogReporter.enable(15, TimeUnit.SECONDS, myDatadogKey)
+reporter.start(10, TimeUnit.SECONDS)
 ~~~
 
 
@@ -19,4 +27,4 @@ Metrics datadog reporter is available as an artifact on
 
 * Group: org.coursera
 * Artifact: metrics-datadog
-* Version: 0.1.5
+* Version: 0.1.6
