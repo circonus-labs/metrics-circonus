@@ -69,31 +69,35 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   @Override
   public void run() {
-    Request request = null;
     try {
-      request = transport.prepare();
-      jsonOut = jsonFactory.createGenerator(request.getBodyWriter());
-      jsonOut.writeStartObject();
-      jsonOut.writeFieldName("series");
-      jsonOut.writeStartArray();
-    } catch (IOException ioe) {
-      LOG.error("Could not prepare request", ioe);
-      return;
-    }
+      Request request = null;
+      try {
+        request = transport.prepare();
+        jsonOut = jsonFactory.createGenerator(request.getBodyWriter());
+        jsonOut.writeStartObject();
+        jsonOut.writeFieldName("series");
+        jsonOut.writeStartArray();
+      } catch (IOException ioe) {
+        LOG.error("Could not prepare request", ioe);
+        return;
+      }
 
-    final long epoch = clock.time() / 1000;
-    if (this.printVmMetrics) {
-      pushVmMetrics(epoch);
-    }
-    pushRegularMetrics(epoch);
+      final long epoch = clock.time() / 1000;
+      if (this.printVmMetrics) {
+        pushVmMetrics(epoch);
+      }
+      pushRegularMetrics(epoch);
 
-    try {
-      jsonOut.writeEndArray();
-      jsonOut.writeEndObject();
-      jsonOut.flush();
-      request.send();
-    } catch (Exception e) {
-      LOG.error("Error sending metrics", e);
+      try {
+        jsonOut.writeEndArray();
+        jsonOut.writeEndObject();
+        jsonOut.flush();
+        request.send();
+      } catch (Exception e) {
+        LOG.error("Error sending metrics", e);
+      }
+    } catch (Throwable t) {
+      LOG.error("Error processing metrics", t);
     }
   }
 
