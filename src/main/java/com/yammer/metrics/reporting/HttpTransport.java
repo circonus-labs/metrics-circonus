@@ -3,19 +3,15 @@ package com.yammer.metrics.reporting;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
 public class HttpTransport implements Transport {
-    private final CloseableHttpClient client;
     private final String seriesUrl;
 
     public HttpTransport(String host, String apiKey) {
-        this.client = HttpClients.createDefault();
         this.seriesUrl = String.format("https://%s/api/v1/series?api_key=%s", host, apiKey);
     }
 
