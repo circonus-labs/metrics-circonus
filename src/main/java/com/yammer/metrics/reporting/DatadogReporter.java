@@ -1,37 +1,23 @@
 package com.yammer.metrics.reporting;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Locale;
-import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
-import java.util.SortedMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Clock;
-import com.yammer.metrics.core.Counter;
-import com.yammer.metrics.core.Gauge;
-import com.yammer.metrics.core.Histogram;
-import com.yammer.metrics.core.Metered;
-import com.yammer.metrics.core.Metric;
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.MetricPredicate;
-import com.yammer.metrics.core.MetricProcessor;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.core.Sampling;
-import com.yammer.metrics.core.Summarizable;
-import com.yammer.metrics.core.Timer;
-import com.yammer.metrics.core.VirtualMachineMetrics;
+import com.yammer.metrics.core.*;
 import com.yammer.metrics.reporting.Transport.Request;
 import com.yammer.metrics.reporting.model.DatadogCounter;
 import com.yammer.metrics.reporting.model.DatadogGauge;
 import com.yammer.metrics.stats.Snapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Locale;
+import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 
 public class DatadogReporter extends AbstractPollingReporter implements
     MetricProcessor<Long> {
@@ -312,7 +298,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
         Metrics.defaultRegistry(),
         this.predicate,
         VirtualMachineMetrics.getInstance(),
-        new HttpTransport("app.datadoghq.com", apiKey),
+        new HttpTransport(apiKey),
         this.clock,
         this.host,
         this.expansions,

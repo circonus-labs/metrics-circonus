@@ -11,8 +11,8 @@ import java.io.OutputStream;
 public class HttpTransport implements Transport {
     private final String seriesUrl;
 
-    public HttpTransport(String host, String apiKey) {
-        this.seriesUrl = String.format("https://%s/api/v1/series?api_key=%s", host, apiKey);
+    public HttpTransport(String apiKey) {
+        this.seriesUrl = String.format("https://app.datadoghq.com/api/v1/series?api_key=%s", apiKey);
     }
 
     public Request prepare() throws IOException {
