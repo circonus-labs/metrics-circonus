@@ -1,21 +1,22 @@
 package com.yammer.metrics.reporting;
 
-import java.io.IOException;
-import java.util.concurrent.Future;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.util.EntityUtils;
 
-import com.ning.http.client.*;
+import java.io.IOException;
 
 public class AwsHelper {
 
   public static final String url = "http://169.254.169.254/latest/meta-data/instance-id";
 
   public static String getEc2InstanceId() throws IOException {
-    AsyncHttpClient client = new AsyncHttpClient();
+      CloseableHttpAsyncClient client = HttpAsyncClients.createDefault();;
     try {
-      Future<Response> f = client.prepareGet(url).execute();
-      Response resp = f.get();
-
-      return resp.getResponseBody();
+      final HttpResponse response = client.execute(new HttpGet(url), null).get();
+      return EntityUtils.toString(response.getEntity());
     } catch (Throwable t) {
       throw new IOException(t);
     }

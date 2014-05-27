@@ -1,83 +1,68 @@
 package com.yammer.metrics.reporting;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.ning.http.client.AsyncHandler;
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClient.BoundRequestBuilder;
-import com.ning.http.client.HttpResponseBodyPart;
-import com.ning.http.client.HttpResponseHeaders;
-import com.ning.http.client.HttpResponseStatus;
+import java.util.concurrent.Future;
 
 public class HttpTransport implements Transport {
-  private final String apiKey;
-  private final AsyncHttpClient client;
-  private final String seriesUrl;
-  private static final Logger LOG = LoggerFactory
-      .getLogger(HttpTransport.class);
+    private final CloseableHttpAsyncClient client;
+    private final String seriesUrl;
 
-  public HttpTransport(String host, String apiKey) {
-    this.apiKey = apiKey;
-    this.client = new AsyncHttpClient();
-    this.seriesUrl = String.format("https://%s/api/v1/series?api_key=%s", host,
-        apiKey);
-  }
-
-  public static class HttpRequest implements Transport.Request {
-    private final BoundRequestBuilder requestBuilder;
-    private final ByteArrayOutputStream out;
-
-    public HttpRequest(HttpTransport transport, String apiKey,
-        BoundRequestBuilder requestBuilder) throws IOException {
-      this.requestBuilder = requestBuilder;
-      this.requestBuilder.addHeader("Content-Type", "application/json");
-      this.out = new ByteArrayOutputStream();
+    public HttpTransport(String host, String apiKey) {
+        this.client = HttpAsyncClients.createDefault();
+        this.seriesUrl = String.format("https://%s/api/v1/series?api_key=%s", host, apiKey);
     }
 
-    public OutputStream getBodyWriter() {
-      return out;
+    public Request prepare() throws IOException {
+        return new HttpRequest(this);
     }
 
-    public void send() throws Exception {
-      out.flush();
-      out.close();
-      requestBuilder.setBody(out.toByteArray())
-          .execute(new AsyncHandler<Void>() {
-
-            public STATE onBodyPartReceived(HttpResponseBodyPart bp)
-                throws Exception {
-              return STATE.CONTINUE;
+    public Future<HttpResponse> execute(HttpUriRequest request) throws Exception {
+        return this.client.execute(request, new FutureCallback<HttpResponse>() {
+            public void completed(HttpResponse result) {
+                LOG.debug("Completed sending metrics to datadog");
             }
 
-            public Void onCompleted() throws Exception {
-              return null;
+            public void failed(Exception ex) {
+                LOG.error("Error Writing Datadog metrics", ex);
             }
 
-            public STATE onHeadersReceived(HttpResponseHeaders headers)
-                throws Exception {
-              return STATE.CONTINUE;
+            public void cancelled() {
+                LOG.debug("Cancelled request to send metrics to datadog");
             }
-
-            public STATE onStatusReceived(HttpResponseStatus arg0)
-                throws Exception {
-              return STATE.CONTINUE;
-            }
-
-            public void onThrowable(Throwable t) {
-              LOG.error("Error Writing Datadog metrics", t);
-            }
-
-          }).get();
+        });
     }
-  }
 
-  public HttpRequest prepare() throws IOException {
-    BoundRequestBuilder builder = client.preparePost(seriesUrl);
-    return new HttpRequest(this, apiKey, builder);
-  }
+    public static class HttpRequest implements Transport.Request {
+        private final HttpTransport transport;
+        private final HttpPost request;
+        private final ByteArrayOutputStream out;
+
+        public HttpRequest(HttpTransport transport) throws IOException {
+            this.transport = transport;
+            this.request = new HttpPost(this.transport.seriesUrl);
+            this.out = new ByteArrayOutputStream();
+        }
+
+        public OutputStream getBodyWriter() {
+            return out;
+        }
+
+        public void send() throws Exception {
+            this.out.flush();
+            this.out.close();
+            this.request.setEntity(new ByteArrayEntity(out.toByteArray(), ContentType.APPLICATION_JSON));
+            this.transport.execute(this.request).get();
+        }
+    }
 }
