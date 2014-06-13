@@ -27,4 +27,4 @@ Metrics datadog reporter is available as an artifact on
 
 * Group: org.coursera
 * Artifact: metrics-datadog
-* Version: 0.1.6
+* Version: 0.1.7

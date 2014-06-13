@@ -31,6 +31,11 @@
             <name>Daniel Chia</name>
             <email>daniel (at) coursera.org</email>
         </developer>
+        <developer>
+            <id>ankurcha</id>
+            <name>Ankur Chauhan</name>
+            <email>ankur (at) malloc64.com</email>
+        </developer>
     </developers>
     <properties>
         <metrics.version>2.2.0</metrics.version>
@@ -87,20 +92,14 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.ning</groupId>
-            <artifactId>async-http-client</artifactId>
-            <version>1.7.20</version>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>fluent-hc</artifactId>
+            <version>4.3.3</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>1.9.0</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
