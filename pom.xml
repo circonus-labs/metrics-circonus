@@ -31,12 +31,14 @@
             <name>Daniel Chia</name>
             <email>daniel (at) coursera.org</email>
         </developer>
-        <developer>
+    </developers>
+    <contributors>
+        <contributor>
             <id>ankurcha</id>
             <name>Ankur Chauhan</name>
             <email>ankur (at) malloc64.com</email>
-        </developer>
-    </developers>
+        </contributor>
+    </contributors>
     <properties>
         <metrics.version>2.2.0</metrics.version>
         <jackson.version>2.2.2</jackson.version>
