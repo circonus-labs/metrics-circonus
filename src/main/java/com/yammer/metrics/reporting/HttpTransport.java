@@ -35,7 +35,8 @@ public class HttpTransport implements Transport {
         public void send() throws Exception {
             this.out.flush();
             this.out.close();
-            Post(this.transport.seriesUrl).useExpectContinue()
+            Post(this.transport.seriesUrl)
+                    .useExpectContinue()
                     .bodyString(out.toString("UTF-8"), ContentType.APPLICATION_JSON)
                     .execute().discardContent();
         }
