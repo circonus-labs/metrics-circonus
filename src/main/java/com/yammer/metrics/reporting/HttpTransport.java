@@ -6,6 +6,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import static org.apache.http.client.fluent.Request.*;
+
 public class HttpTransport implements Transport {
     private final String seriesUrl;
 
@@ -33,12 +35,10 @@ public class HttpTransport implements Transport {
         public void send() throws Exception {
             this.out.flush();
             this.out.close();
-
-            org.apache.http.client.fluent.Request.Post(this.transport.seriesUrl)
-                    .addHeader("Content-Type",
-                               ContentType.APPLICATION_JSON.toString())
-                    .bodyByteArray(this.out.toByteArray())
-                    .execute();
+            Post(this.transport.seriesUrl)
+                    .useExpectContinue()
+                    .bodyString(out.toString("UTF-8"), ContentType.APPLICATION_JSON)
+                    .execute().discardContent();
         }
     }
 }
