@@ -38,7 +38,8 @@ public class HttpTransport implements Transport {
             Post(this.transport.seriesUrl)
                     .useExpectContinue()
                     .bodyString(out.toString("UTF-8"), ContentType.APPLICATION_JSON)
-                    .execute().discardContent();
+                    .execute()
+                    .discardContent();
         }
     }
 }
