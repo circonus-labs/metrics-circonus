@@ -1,6 +1,7 @@
 package com.yammer.metrics.reporting;
 
 import com.yammer.metrics.reporting.model.DatadogCounter;
+
 import org.junit.Test;
 
 import java.util.List;

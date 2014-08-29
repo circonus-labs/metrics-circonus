@@ -43,34 +43,37 @@ public class DatadogReporterTest {
     clock = Clock.defaultClock();
     vm = VirtualMachineMetrics.getInstance();
     ddNoHost = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
-        VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        null, DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter());
+                                   VirtualMachineMetrics.getInstance(), transport,
+                                   Clock.defaultClock(),
+                                   null, DatadogReporter.Expansions.ALL, true,
+                                   new DefaultMetricNameFormatter());
 
     dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
-        VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        "hostname", DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter());
+                             VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
+                             "hostname", DatadogReporter.Expansions.ALL, true,
+                             new DefaultMetricNameFormatter());
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void testBasicSend() throws JsonParseException, JsonMappingException,
-      IOException {
+                                     IOException {
     dd.printVmMetrics = false;
 
     Counter counter = metricsRegistry.newCounter(DatadogReporterTest.class,
-        "my.counter");
+                                                 "my.counter");
     counter.inc();
 
     metricsRegistry.newGauge(DatadogReporterTest.class, "my.invocations",
-        new Gauge<Long>() {
-          private long numInovcations = 123;
+                             new Gauge<Long>() {
+                               private long numInovcations = 123;
 
-          @Override
-          public Long value() {
-            return numInovcations++;
-          }
+                               @Override
+                               public Long value() {
+                                 return numInovcations++;
+                               }
 
-        });
+                             });
 
     assertEquals(0, transport.numRequests);
     dd.run();
@@ -78,7 +81,7 @@ public class DatadogReporterTest {
 
     String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
     Map<String, Object> request = new ObjectMapper().readValue(body,
-        HashMap.class);
+                                                               HashMap.class);
 
     assertEquals(1, request.keySet().size());
     List<Object> series = (List<Object>) request.get("series");
@@ -88,7 +91,7 @@ public class DatadogReporterTest {
     Map<String, Object> gaugeEntry = (Map<String, Object>) series.get(1);
 
     assertEquals("com.yammer.metrics.reporting.DatadogReporterTest.my.counter",
-        counterEntry.get("metric"));
+                 counterEntry.get("metric"));
     assertEquals("counter", counterEntry.get("type"));
     List<List<Number>> points = (List<List<Number>>) counterEntry.get("points");
     assertEquals(1, points.get(0).get(1));
@@ -103,24 +106,26 @@ public class DatadogReporterTest {
 
   @Test
   public void testTimerExpansion() throws JsonParseException, JsonMappingException,
-      IOException {
+                                          IOException {
     // TODO: punting on testing actual values, as Timer is a class not an interface,
     // and requires a threadPool and all that.
     Timer timer = metricsRegistry.newTimer(DatadogReporterTest.class, "my.timer");
     timer.update(1, TimeUnit.MILLISECONDS);
 
-    for (Expansions expansion: Expansions.ALL) {
+    for (Expansions expansion : Expansions.ALL) {
       expansionTestHelper(expansion);
     }
   }
 
   @SuppressWarnings("unchecked")
   private void expansionTestHelper(Expansions expansion) throws JsonParseException,
-      JsonMappingException, IOException {
+                                                                JsonMappingException, IOException {
     MockTransport transport = new MockTransport();
     DatadogReporter dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
-      VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-      "hostname", EnumSet.of(expansion), false, new DefaultMetricNameFormatter());
+                                             VirtualMachineMetrics.getInstance(), transport,
+                                             Clock.defaultClock(),
+                                             "hostname", EnumSet.of(expansion), false,
+                                             new DefaultMetricNameFormatter());
 
     assertEquals(0, transport.numRequests);
     dd.run();
@@ -128,21 +133,22 @@ public class DatadogReporterTest {
 
     String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
     Map<String, Object> request = new ObjectMapper().readValue(body,
-        HashMap.class);
+                                                               HashMap.class);
     List<Object> series = (List<Object>) request.get("series");
 
     assertEquals(1, series.size());
     Map<String, Object> metric = (Map<String, Object>) series.get(0);
 
-    assertEquals("com.yammer.metrics.reporting.DatadogReporterTest.my.timer." + expansion.toString(),
-      metric.get("metric"));
+    assertEquals(
+        "com.yammer.metrics.reporting.DatadogReporterTest.my.timer." + expansion.toString(),
+        metric.get("metric"));
     assertEquals(expansion.equals(Expansions.COUNT) ? "counter" : "gauge", metric.get("type"));
   }
 
   @Test
   public void testSupplyHostname() throws UnsupportedEncodingException {
     Counter counter = metricsRegistry.newCounter(DatadogReporterTest.class,
-        "my.counter");
+                                                 "my.counter");
     counter.inc();
 
     assertEquals(0, transport.numRequests);
@@ -162,7 +168,7 @@ public class DatadogReporterTest {
   @Test
   public void testTaggedMeter() throws Throwable {
     Meter s = metricsRegistry.newMeter(String.class,
-        "meter[with,tags]", "ticks", TimeUnit.SECONDS);
+                                       "meter[with,tags]", "ticks", TimeUnit.SECONDS);
     s.mark();
 
     ddNoHost.printVmMetrics = false;
@@ -170,10 +176,10 @@ public class DatadogReporterTest {
     String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
 
     Map<String, Object> request = new ObjectMapper().readValue(body,
-        HashMap.class);
+                                                               HashMap.class);
     List<Object> series = (List<Object>) request.get("series");
 
-    for(Object o : series) {
+    for (Object o : series) {
       HashMap<String, Object> rec = (HashMap<String, Object>) o;
       List<String> tags = (List<String>) rec.get("tags");
       String name = rec.get("metric").toString();
