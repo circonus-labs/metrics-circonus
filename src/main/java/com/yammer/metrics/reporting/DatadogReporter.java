@@ -252,6 +252,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     private Clock clock = Clock.defaultClock();
     private MetricPredicate predicate = MetricPredicate.ALL;
     private MetricNameFormatter metricNameFormatter = new DefaultMetricNameFormatter();
+    private MetricsRegistry metricsRegistry = Metrics.defaultRegistry();
 
     public Builder withHost(String host) {
       this.host = host;
@@ -293,9 +294,14 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
+    public Builder withMetricsRegistry(MetricsRegistry metricsRegistry) {
+      this.metricsRegistry = metricsRegistry;
+      return this;
+    }
+
     public DatadogReporter build() {
       return new DatadogReporter(
-        Metrics.defaultRegistry(),
+        metricsRegistry,
         this.predicate,
         VirtualMachineMetrics.getInstance(),
         new HttpTransport(apiKey),
