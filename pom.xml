@@ -8,7 +8,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.coursera</groupId>
     <artifactId>metrics-datadog</artifactId>
-    <version>0.1.7-SNAPSHOT</version>
+    <version>0.1.9-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Datadog Metrics Support</name>
     <description>A Datadog reporter backend for yammer metrics</description>
@@ -31,12 +31,13 @@
             <name>Daniel Chia</name>
             <email>daniel (at) coursera.org</email>
         </developer>
-        <developer>
-            <id>ankurcha</id>
+    </developers>
+    <contributors>
+        <contributor>
             <name>Ankur Chauhan</name>
             <email>ankur (at) malloc64.com</email>
-        </developer>
-    </developers>
+        </contributor>
+    </contributors>
     <properties>
         <metrics.version>2.2.0</metrics.version>
         <jackson.version>2.2.2</jackson.version>
@@ -80,6 +81,17 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nexus-staging-maven-plugin</artifactId>
+              <version>1.6.2</version>
+              <extensions>true</extensions>
+              <configuration>
+                <serverId>ossrh</serverId>
+                <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              </configuration>
             </plugin>
         </plugins>
     </build>

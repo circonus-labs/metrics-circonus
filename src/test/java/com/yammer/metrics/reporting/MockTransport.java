@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class MockTransport implements Transport {
+
   public MockRequest lastRequest;
   public int numRequests = 0;
   public OutputStream out;
@@ -18,6 +19,7 @@ public class MockTransport implements Transport {
   }
 
   public static class MockRequest implements Request {
+
     private final OutputStream out;
 
     MockRequest(OutputStream out) {

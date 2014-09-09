@@ -19,7 +19,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 public class DatadogReporter extends AbstractPollingReporter implements
-    MetricProcessor<Long> {
+                                                             MetricProcessor<Long> {
 
   public boolean printVmMetrics = true;
   protected final Locale locale = Locale.US;
@@ -39,9 +39,11 @@ public class DatadogReporter extends AbstractPollingReporter implements
   private JsonGenerator jsonOut;
 
   public DatadogReporter(MetricsRegistry metricsRegistry,
-      MetricPredicate predicate, VirtualMachineMetrics vm, Transport transport,
-      Clock clock, String host, EnumSet<Expansions> expansions, Boolean printVmMetrics,
-      MetricNameFormatter metricNameFormatter, List<String> tags) {
+                         MetricPredicate predicate, VirtualMachineMetrics vm, Transport transport,
+                         Clock clock, String host, EnumSet<Expansions> expansions,
+                         Boolean printVmMetrics,
+                         MetricNameFormatter metricNameFormatter,
+                         List<String> tags) {
     super(metricsRegistry, "datadog-reporter");
     this.vm = vm;
     this.transport = transport;
@@ -111,8 +113,9 @@ public class DatadogReporter extends AbstractPollingReporter implements
 
   public void processMeter(MetricName name, Metered meter, Long epoch)
       throws Exception {
-    if (expansions.contains(Expansions.COUNT))
+    if (expansions.contains(Expansions.COUNT)) {
       pushCounter(name, meter.count(), epoch, Expansions.COUNT.toString());
+    }
 
     maybeExpand(Expansions.RATE_MEAN, name, meter.meanRate(), epoch);
     maybeExpand(Expansions.RATE_1_MINUTE, name, meter.oneMinuteRate(), epoch);
@@ -128,7 +131,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   private void pushSummarizable(MetricName name, Summarizable summarizable,
-      Long epoch) {
+                                Long epoch) {
     maybeExpand(Expansions.MIN, name, summarizable.min(), epoch);
     maybeExpand(Expansions.MAX, name, summarizable.max(), epoch);
     maybeExpand(Expansions.MEAN, name, summarizable.mean(), epoch);
@@ -146,8 +149,9 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   private void maybeExpand(Expansions expansion, MetricName name, Number count, Long epoch) {
-    if (expansions.contains(expansion))
+    if (expansions.contains(expansion)) {
       pushGauge(name, count, epoch, expansion.toString());
+    }
   }
 
   protected void pushRegularMetrics(long epoch) {
@@ -182,7 +186,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   private void pushCounter(MetricName metricName, Long count, Long epoch,
-      String... path) {
+                           String... path) {
     pushCounter(metricNameFormatter.format(metricName, path), count, epoch);
 
   }
@@ -197,7 +201,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   private void pushGauge(MetricName metricName, Number count, Long epoch,
-      String... path) {
+                         String... path) {
     sendGauge(metricNameFormatter.format(metricName, path), count, epoch);
   }
 
@@ -246,6 +250,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   public static class Builder {
+
     private String host = null;
     private EnumSet<Expansions> expansions = Expansions.ALL;
     private Boolean vmMetrics = true;
@@ -254,6 +259,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     private MetricPredicate predicate = MetricPredicate.ALL;
     private MetricNameFormatter metricNameFormatter = new DefaultMetricNameFormatter();
     private List<String> tags = new ArrayList<String>();
+    private MetricsRegistry metricsRegistry = Metrics.defaultRegistry();
 
     public Builder withHost(String host) {
       this.host = host;
@@ -306,9 +312,14 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
+    public Builder withMetricsRegistry(MetricsRegistry metricsRegistry) {
+      this.metricsRegistry = metricsRegistry;
+      return this;
+    }
+
     public DatadogReporter build() {
       return new DatadogReporter(
-        Metrics.defaultRegistry(),
+        metricsRegistry,
         this.predicate,
         VirtualMachineMetrics.getInstance(),
         new HttpTransport(apiKey),
