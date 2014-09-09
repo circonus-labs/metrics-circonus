@@ -37,6 +37,10 @@
             <name>Ankur Chauhan</name>
             <email>ankur (at) malloc64.com</email>
         </contributor>
+        <contributor>
+            <name>Arup Malakar</name>
+            <email>amalakar (at) gmail.com</email>
+        </contributor>
     </contributors>
     <properties>
         <metrics.version>2.2.0</metrics.version>
