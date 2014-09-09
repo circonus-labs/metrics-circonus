@@ -34,6 +34,7 @@ public class DatadogReporterTest {
   Clock clock;
   DatadogReporter ddNoHost;
   DatadogReporter dd;
+  List<String> tags;
   static final MetricPredicate ALL = MetricPredicate.ALL;
 
   @Before
@@ -46,12 +47,12 @@ public class DatadogReporterTest {
                                    VirtualMachineMetrics.getInstance(), transport,
                                    Clock.defaultClock(),
                                    null, DatadogReporter.Expansions.ALL, true,
-                                   new DefaultMetricNameFormatter());
+                                   new DefaultMetricNameFormatter(), tags);
 
     dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
                              VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
                              "hostname", DatadogReporter.Expansions.ALL, true,
-                             new DefaultMetricNameFormatter());
+                             new DefaultMetricNameFormatter(), tags);
   }
 
   @SuppressWarnings("unchecked")
@@ -125,7 +126,7 @@ public class DatadogReporterTest {
                                              VirtualMachineMetrics.getInstance(), transport,
                                              Clock.defaultClock(),
                                              "hostname", EnumSet.of(expansion), false,
-                                             new DefaultMetricNameFormatter());
+                                             new DefaultMetricNameFormatter(), tags);
 
     assertEquals(0, transport.numRequests);
     dd.run();
