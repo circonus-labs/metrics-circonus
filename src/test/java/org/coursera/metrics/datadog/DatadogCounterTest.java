@@ -1,6 +1,6 @@
-package com.yammer.metrics.reporting;
+package org.coursera.metrics.datadog;
 
-import com.yammer.metrics.reporting.model.DatadogGauge;
+import org.coursera.metrics.datadog.model.DatadogCounter;
 
 import org.junit.Test;
 
@@ -9,16 +9,16 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class DatadogGaugeTest {
+public class DatadogCounterTest {
 
   @Test
   public void testSplitNameAndTags() {
     List<String> tags = new ArrayList<String>();
     tags.add("env:prod");
     tags.add("version:1.0.0");
-    DatadogGauge gauge = new DatadogGauge(
+    DatadogCounter counter = new DatadogCounter(
         "test[tag1:value1,tag2:value2,tag3:value3]", 1L, 1234L, "Test Host", tags);
-    List<String> allTags = gauge.getTags();
+    List<String> allTags = counter.getTags();
 
     assertEquals(5, allTags.size());
     assertEquals("tag1:value1", allTags.get(0));
@@ -26,6 +26,6 @@ public class DatadogGaugeTest {
     assertEquals("tag3:value3", allTags.get(2));
     assertEquals("env:prod", allTags.get(3));
     assertEquals("version:1.0.0", allTags.get(4));
-
   }
+
 }

@@ -1,4 +1,4 @@
-package com.yammer.metrics.reporting.model;
+package org.coursera.metrics.datadog.model;
 
 import java.util.ArrayList;
 import java.util.List;

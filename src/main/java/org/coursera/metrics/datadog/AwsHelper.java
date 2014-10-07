@@ -1,4 +1,4 @@
-package com.yammer.metrics.reporting;
+package org.coursera.metrics.datadog;
 
 import org.apache.http.client.fluent.Request;
 

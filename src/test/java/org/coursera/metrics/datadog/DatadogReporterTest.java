@@ -1,4 +1,4 @@
-package com.yammer.metrics.reporting;
+package org.coursera.metrics.datadog;
 
 import static org.junit.Assert.*;
 
@@ -24,7 +24,7 @@ import com.yammer.metrics.core.MetricPredicate;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import com.yammer.metrics.core.Timer;
-import com.yammer.metrics.reporting.DatadogReporter.Expansions;
+import org.coursera.metrics.datadog.DatadogReporter.Expansions;
 
 public class DatadogReporterTest {
 
@@ -91,14 +91,14 @@ public class DatadogReporterTest {
     Map<String, Object> counterEntry = (Map<String, Object>) series.get(0);
     Map<String, Object> gaugeEntry = (Map<String, Object>) series.get(1);
 
-    assertEquals("com.yammer.metrics.reporting.DatadogReporterTest.my.counter",
+    assertEquals("org.coursera.metrics.datadog.DatadogReporterTest.my.counter",
                  counterEntry.get("metric"));
     assertEquals("counter", counterEntry.get("type"));
     List<List<Number>> points = (List<List<Number>>) counterEntry.get("points");
     assertEquals(1, points.get(0).get(1));
 
     assertEquals(
-        "com.yammer.metrics.reporting.DatadogReporterTest.my.invocations",
+        "org.coursera.metrics.datadog.DatadogReporterTest.my.invocations",
         gaugeEntry.get("metric"));
     assertEquals("gauge", gaugeEntry.get("type"));
     points = (List<List<Number>>) gaugeEntry.get("points");
@@ -141,7 +141,7 @@ public class DatadogReporterTest {
     Map<String, Object> metric = (Map<String, Object>) series.get(0);
 
     assertEquals(
-        "com.yammer.metrics.reporting.DatadogReporterTest.my.timer." + expansion.toString(),
+        "org.coursera.metrics.DatadogReporterTest.my.timer." + expansion.toString(),
         metric.get("metric"));
     assertEquals(expansion.equals(Expansions.COUNT) ? "counter" : "gauge", metric.get("type"));
   }

@@ -1,4 +1,6 @@
-package com.yammer.metrics.reporting;
+package org.coursera.metrics.datadog;
+
+import org.coursera.metrics.datadog.Transport;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
