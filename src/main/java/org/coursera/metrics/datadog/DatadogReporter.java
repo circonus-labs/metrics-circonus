@@ -1,222 +1,276 @@
 package org.coursera.metrics.datadog;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.*;
-import com.yammer.metrics.core.Timer;
-import com.yammer.metrics.reporting.AbstractPollingReporter;
-import com.yammer.metrics.stats.Snapshot;
+import com.codahale.metrics.Clock;
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metered;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.ScheduledReporter;
+import com.codahale.metrics.Snapshot;
+import com.codahale.metrics.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
-public class DatadogReporter extends AbstractPollingReporter implements
-                                                             MetricProcessor<Long> {
+public class DatadogReporter extends ScheduledReporter {
 
-  public boolean printVmMetrics = true;
-  protected final Locale locale = Locale.US;
-  protected final Clock clock;
+  private static final Logger LOG =
+      LoggerFactory.getLogger(DatadogReporter.class);
+  private final Transport transport;
+  private final Clock clock;
   private final String host;
-  protected final MetricPredicate predicate;
-  protected final Transport transport;
-  protected final EnumSet<Expansions> expansions;
-  private static final Logger LOG = LoggerFactory
-      .getLogger(DatadogReporter.class);
-  private final VirtualMachineMetrics vm;
+  private final EnumSet<Expansion> expansions;
   private final MetricNameFormatter metricNameFormatter;
   private final List<String> tags;
+  private Transport.Request request;
 
-  private static final JsonFactory jsonFactory = new JsonFactory();
-  private static final ObjectMapper mapper = new ObjectMapper(jsonFactory);
-  private JsonGenerator jsonOut;
-
-  public DatadogReporter(MetricsRegistry metricsRegistry,
-                         MetricPredicate predicate, VirtualMachineMetrics vm, Transport transport,
-                         Clock clock, String host, EnumSet<Expansions> expansions,
-                         Boolean printVmMetrics,
-                         MetricNameFormatter metricNameFormatter,
-                         List<String> tags) {
-    super(metricsRegistry, "datadog-reporter");
-    this.vm = vm;
-    this.transport = transport;
-    this.predicate = predicate;
+  private DatadogReporter(MetricRegistry metricRegistry,
+                          Transport transport,
+                          MetricFilter filter,
+                          Clock clock,
+                          String host,
+                          EnumSet<Expansion> expansions,
+                          TimeUnit rateUnit,
+                          TimeUnit durationUnit,
+                          MetricNameFormatter metricNameFormatter,
+                          List<String> tags) {
+    super(metricRegistry,
+          "datadog-reporter",
+          filter,
+          rateUnit,
+          durationUnit);
     this.clock = clock;
     this.host = host;
     this.expansions = expansions;
-    this.printVmMetrics = printVmMetrics;
     this.metricNameFormatter = metricNameFormatter;
     this.tags = tags;
+    this.transport = transport;
   }
 
   @Override
-  public void run() {
+  public void report(SortedMap<String, Gauge> gauges,
+                     SortedMap<String, Counter> counters,
+                     SortedMap<String, Histogram> histograms,
+                     SortedMap<String, Meter> meters,
+                     SortedMap<String, Timer> timers) {
+    final long timestamp = clock.getTime() / 1000;
+
     try {
-      Transport.Request request = null;
-      try {
-        request = transport.prepare();
-        jsonOut = jsonFactory.createGenerator(request.getBodyWriter());
-        jsonOut.writeStartObject();
-        jsonOut.writeFieldName("series");
-        jsonOut.writeStartArray();
-      } catch (IOException ioe) {
-        LOG.error("Could not prepare request", ioe);
-        return;
+      request = transport.prepare();
+
+      for (Map.Entry<String, Gauge> entry : gauges.entrySet()) {
+        reportGauge(entry.getKey(), entry.getValue(), timestamp);
       }
 
-      final long epoch = clock.time() / 1000;
-      if (this.printVmMetrics) {
-        pushVmMetrics(epoch);
+      for (Map.Entry<String, Counter> entry : counters.entrySet()) {
+        reportCounter(entry.getKey(), entry.getValue(), timestamp);
       }
-      pushRegularMetrics(epoch);
 
-      try {
-        jsonOut.writeEndArray();
-        jsonOut.writeEndObject();
-        jsonOut.flush();
-        request.send();
-      } catch (Exception e) {
-        LOG.error("Error sending metrics", e);
+      for (Map.Entry<String, Histogram> entry : histograms.entrySet()) {
+        reportHistogram(entry.getKey(), entry.getValue(), timestamp);
       }
-    } catch (Throwable t) {
-      LOG.error("Error processing metrics", t);
+
+      for (Map.Entry<String, Meter> entry : meters.entrySet()) {
+        reportMetered(entry.getKey(), entry.getValue(), timestamp);
+      }
+
+      for (Map.Entry<String, Timer> entry : timers.entrySet()) {
+        reportTimer(entry.getKey(), entry.getValue(), timestamp);
+      }
+
+      request.send();
+    } catch (Exception e) {
+      LOG.error("Error reporting metrics to Datadog", e);
     }
   }
 
-  public void processCounter(MetricName name, Counter counter, Long epoch)
-      throws Exception {
-    pushCounter(name, counter.count(), epoch);
+  private void reportTimer(String name, Timer timer, long timestamp)
+      throws IOException {
+    final Snapshot snapshot = timer.getSnapshot();
+
+    request.addGauge(maybeExpand(Expansion.MAX, name),
+                     toNumber(convertDuration(snapshot.getMax())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.MEAN, name),
+                     toNumber(convertDuration(snapshot.getMean())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.MIN, name),
+                     toNumber(convertDuration(snapshot.getMin())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.STD_DEV, name),
+                     toNumber(convertDuration(snapshot.getStdDev())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P50, name),
+                     toNumber(convertDuration(snapshot.getMedian())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P75, name),
+                     toNumber(convertDuration(snapshot.get75thPercentile())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P95, name),
+                     toNumber(convertDuration(snapshot.get95thPercentile())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P98, name),
+                     toNumber(convertDuration(snapshot.get98thPercentile())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P99, name),
+                     toNumber(convertDuration(snapshot.get99thPercentile())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P999, name),
+                     toNumber(convertDuration(snapshot.get999thPercentile())),
+                     timestamp,
+                     host,
+                     tags);
+
+    reportMetered(name, timer, timestamp);
   }
 
-  public void processGauge(MetricName name, Gauge<?> gauge, Long epoch)
-      throws Exception {
-    Object value = gauge.value();
-    if (value instanceof Number) {
-      pushGauge(name, (Number) value, epoch);
-    } else {
-      LOG.debug("Gauge " + name + " had non Number value, skipped");
+  private void reportMetered(String name, Metered meter, long timestamp)
+      throws IOException {
+    request.addCounter(maybeExpand(Expansion.COUNT, name),
+                       meter.getCount(),
+                       timestamp,
+                       host,
+                       tags);
+    request.addGauge(maybeExpand(Expansion.RATE_1_MINUTE, name),
+                     toNumber(convertRate(meter.getOneMinuteRate())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.RATE_5_MINUTE, name),
+                     toNumber(convertRate(meter.getFiveMinuteRate())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.RATE_15_MINUTE, name),
+                     toNumber(convertRate(meter.getFifteenMinuteRate())),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.RATE_MEAN, name),
+                     toNumber(convertRate(meter.getMeanRate())),
+                     timestamp,
+                     host,
+                     tags);
+  }
+
+  private void reportHistogram(String name, Histogram histogram, long timestamp)
+      throws IOException {
+    final Snapshot snapshot = histogram.getSnapshot();
+
+    request.addCounter(maybeExpand(Expansion.COUNT, name),
+                       histogram.getCount(),
+                       timestamp,
+                       host,
+                       tags);
+    request.addGauge(maybeExpand(Expansion.MAX, name),
+                     toNumber(snapshot.getMax()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.MEAN, name),
+                     toNumber(snapshot.getMean()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.MIN, name),
+                     toNumber(snapshot.getMin()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.STD_DEV, name),
+                     toNumber(snapshot.getStdDev()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P50, name),
+                     toNumber(snapshot.getMedian()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P75, name),
+                     toNumber(snapshot.get75thPercentile()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P95, name),
+                     toNumber(snapshot.get95thPercentile()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P98, name),
+                     toNumber(snapshot.get98thPercentile()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P99, name),
+                     toNumber(snapshot.get99thPercentile()),
+                     timestamp,
+                     host,
+                     tags);
+    request.addGauge(maybeExpand(Expansion.P999, name),
+                     toNumber(snapshot.get999thPercentile()),
+                     timestamp,
+                     host,
+                     tags);
+  }
+
+  private void reportCounter(String name, Counter counter, long timestamp)
+      throws IOException {
+    request.addCounter(name, counter.getCount(), timestamp, host, tags);
+  }
+
+  private void reportGauge(String name, Gauge gauge, long timestamp)
+      throws IOException {
+    final Number value = toNumber(gauge.getValue());
+    if (value != null) {
+      request.addGauge(name, value, timestamp, host, tags);
     }
   }
 
-  public void processHistogram(MetricName name, Histogram histogram, Long epoch)
-      throws Exception {
-    pushSummarizable(name, histogram, epoch);
-    pushSampling(name, histogram, epoch);
-  }
-
-  public void processMeter(MetricName name, Metered meter, Long epoch)
-      throws Exception {
-    if (expansions.contains(Expansions.COUNT)) {
-      pushCounter(name, meter.count(), epoch, Expansions.COUNT.toString());
+  private Number toNumber(Object o) {
+    if (o instanceof Number) {
+      return (Number) o;
     }
-
-    maybeExpand(Expansions.RATE_MEAN, name, meter.meanRate(), epoch);
-    maybeExpand(Expansions.RATE_1_MINUTE, name, meter.oneMinuteRate(), epoch);
-    maybeExpand(Expansions.RATE_5_MINUTE, name, meter.fiveMinuteRate(), epoch);
-    maybeExpand(Expansions.RATE_15_MINUTE, name, meter.fifteenMinuteRate(), epoch);
+    return null;
   }
 
-  public void processTimer(MetricName name, Timer timer, Long epoch)
-      throws Exception {
-    processMeter(name, timer, epoch);
-    pushSummarizable(name, timer, epoch);
-    pushSampling(name, timer, epoch);
-  }
-
-  private void pushSummarizable(MetricName name, Summarizable summarizable,
-                                Long epoch) {
-    maybeExpand(Expansions.MIN, name, summarizable.min(), epoch);
-    maybeExpand(Expansions.MAX, name, summarizable.max(), epoch);
-    maybeExpand(Expansions.MEAN, name, summarizable.mean(), epoch);
-    maybeExpand(Expansions.STD_DEV, name, summarizable.stdDev(), epoch);
-  }
-
-  private void pushSampling(MetricName name, Sampling sampling, Long epoch) {
-    final Snapshot snapshot = sampling.getSnapshot();
-    maybeExpand(Expansions.MEDIAN, name, snapshot.getMedian(), epoch);
-    maybeExpand(Expansions.P75, name, snapshot.get75thPercentile(), epoch);
-    maybeExpand(Expansions.P95, name, snapshot.get95thPercentile(), epoch);
-    maybeExpand(Expansions.P98, name, snapshot.get98thPercentile(), epoch);
-    maybeExpand(Expansions.P99, name, snapshot.get99thPercentile(), epoch);
-    maybeExpand(Expansions.P999, name, snapshot.get999thPercentile(), epoch);
-  }
-
-  private void maybeExpand(Expansions expansion, MetricName name, Number count, Long epoch) {
+  private String maybeExpand(Expansion expansion, String name) {
     if (expansions.contains(expansion)) {
-      pushGauge(name, count, epoch, expansion.toString());
+      return metricNameFormatter.format(name, expansion.toString());
+    } else {
+      return metricNameFormatter.format(name);
     }
   }
 
-  protected void pushRegularMetrics(long epoch) {
-    for (Entry<String, SortedMap<MetricName, Metric>> entry : getMetricsRegistry()
-        .groupedMetrics(predicate).entrySet()) {
-      for (Entry<MetricName, Metric> subEntry : entry.getValue().entrySet()) {
-        final Metric metric = subEntry.getValue();
-        if (metric != null) {
-          try {
-            metric.processWith(this, subEntry.getKey(), epoch);
-          } catch (Exception e) {
-            LOG.error("Error pushing metric", e);
-          }
-        }
-      }
-    }
-  }
-
-  protected void pushVmMetrics(long epoch) {
-    sendGauge("jvm.memory.heap.committed", vm.heapCommitted(), epoch);
-    sendGauge("jvm.memory.heap.used", vm.heapUsed(), epoch);
-
-    pushGauge("jvm.daemon_thread_count", vm.daemonThreadCount(), epoch);
-    pushGauge("jvm.thread_count", vm.threadCount(), epoch);
-
-    for (Entry<String, VirtualMachineMetrics.GarbageCollectorStats> entry : vm
-        .garbageCollectors().entrySet()) {
-      final String tag = "[type:" + entry.getKey() + "]";
-      pushGauge("jvm.gc.time" + tag, entry.getValue().getTime(TimeUnit.MILLISECONDS), epoch);
-      pushCounter("jvm.gc.runs" + tag, entry.getValue().getRuns(), epoch);
-    }
-  }
-
-  private void pushCounter(MetricName metricName, Long count, Long epoch,
-                           String... path) {
-    pushCounter(metricNameFormatter.format(metricName, path), count, epoch);
-
-  }
-
-  private void pushCounter(String name, Long count, Long epoch) {
-    DatadogCounter counter = new DatadogCounter(name, count, epoch, host, this.tags);
-    try {
-      mapper.writeValue(jsonOut, counter);
-    } catch (Exception e) {
-      LOG.error("Error writing counter", e);
-    }
-  }
-
-  private void pushGauge(MetricName metricName, Number count, Long epoch,
-                         String... path) {
-    sendGauge(metricNameFormatter.format(metricName, path), count, epoch);
-  }
-
-  private void pushGauge(String name, long count, long epoch) {
-    sendGauge(name, new Long(count), epoch);
-  }
-
-  private void sendGauge(String name, Number count, Long epoch) {
-    DatadogGauge gauge = new DatadogGauge(name, count, epoch, host, this.tags);
-    try {
-      mapper.writeValue(jsonOut, gauge);
-    } catch (Exception e) {
-      LOG.error("Error writing gauge", e);
-    }
-  }
-
-  public static enum Expansions {
+  public static enum Expansion {
     COUNT("count"),
     RATE_MEAN("meanRate"),
     RATE_1_MINUTE("1MinuteRate"),
@@ -227,17 +281,18 @@ public class DatadogReporter extends AbstractPollingReporter implements
     MAX("max"),
     STD_DEV("stddev"),
     MEDIAN("median"),
+    P50("p50"),
     P75("p75"),
     P95("p95"),
     P98("p98"),
     P99("p99"),
     P999("p999");
 
-    public static EnumSet<Expansions> ALL = EnumSet.allOf(Expansions.class);
+    public static EnumSet<Expansion> ALL = EnumSet.allOf(Expansion.class);
 
     private final String displayName;
 
-    private Expansions(String displayName) {
+    private Expansion(String displayName) {
       this.displayName = displayName;
     }
 
@@ -247,17 +302,37 @@ public class DatadogReporter extends AbstractPollingReporter implements
     }
   }
 
-  public static class Builder {
+  public static Builder forRegistry(MetricRegistry registry) {
+    return new Builder(registry);
+  }
 
-    private String host = null;
-    private EnumSet<Expansions> expansions = Expansions.ALL;
-    private Boolean vmMetrics = true;
-    private String apiKey = null;
-    private Clock clock = Clock.defaultClock();
-    private MetricPredicate predicate = MetricPredicate.ALL;
-    private MetricNameFormatter metricNameFormatter = new DefaultMetricNameFormatter();
-    private List<String> tags = new ArrayList<String>();
-    private MetricsRegistry metricsRegistry = Metrics.defaultRegistry();
+  public static class Builder {
+    private final MetricRegistry registry;
+    private String host;
+    private EnumSet<Expansion> expansions;
+    private String apiKey;
+    private Clock clock;
+    private TimeUnit rateUnit;
+    private TimeUnit durationUnit;
+    private MetricFilter filter;
+    private MetricNameFormatter metricNameFormatter;
+    private List<String> tags;
+    private Transport transport;
+    private int connectTimeout;
+    private int socketTimeout;
+
+    public Builder(MetricRegistry registry) {
+      this.registry = registry;
+      this.expansions = Expansion.ALL;
+      this.clock = Clock.defaultClock();
+      this.rateUnit = TimeUnit.SECONDS;
+      this.durationUnit = TimeUnit.MILLISECONDS;
+      this.filter = MetricFilter.ALL;
+      this.metricNameFormatter = new DefaultMetricNameFormatter();
+      this.tags = new ArrayList<String>();
+      this.connectTimeout = 5000;
+      this.socketTimeout = 5000;
+    }
 
     public Builder withHost(String host) {
       this.host = host;
@@ -269,13 +344,8 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
-    public Builder withExpansions(EnumSet<Expansions> expansions) {
+    public Builder withExpansions(EnumSet<Expansion> expansions) {
       this.expansions = expansions;
-      return this;
-    }
-
-    public Builder withVmMetricsEnabled(Boolean enabled) {
-      this.vmMetrics = enabled;
       return this;
     }
 
@@ -284,15 +354,23 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
+    public Builder convertRatesTo(TimeUnit rateUnit) {
+      this.rateUnit = rateUnit;
+      return this;
+    }
+
     /**
-     * Tags that would be sent to datadog with each and every metrics. This could be used to set global metrics
-     * like version of the app, environment etc.
+     * Tags that would be sent to datadog with each and every metrics. This
+     * could be used to set global metrics like version of the app,
+     * environment etc.
+     *
      * @param tags List of tags eg: [env:prod, version:1.0.1] etc
-     * @return
+     * @return the {@link org.coursera.metrics.datadog.DatadogReporter.Builder Builder}
+     * object
      */
     public Builder withTags(List<String> tags) {
-        this.tags = tags;
-        return this;
+      this.tags = tags;
+      return this;
     }
 
     public Builder withClock(Clock clock) {
@@ -300,8 +378,8 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
-    public Builder withPredicate(MetricPredicate predicate) {
-      this.predicate = predicate;
+    public Builder filter(MetricFilter filter) {
+      this.filter = filter;
       return this;
     }
 
@@ -310,23 +388,42 @@ public class DatadogReporter extends AbstractPollingReporter implements
       return this;
     }
 
-    public Builder withMetricsRegistry(MetricsRegistry metricsRegistry) {
-      this.metricsRegistry = metricsRegistry;
+    public Builder convertDurationsTo(TimeUnit durationUnit) {
+      this.durationUnit = durationUnit;
+      return this;
+    }
+
+    public Builder withConnectTimeout(int milliseconds) {
+      this.connectTimeout = milliseconds;
+      return this;
+    }
+
+    public Builder withSocketTimeout(int milliseconds) {
+      this.socketTimeout = milliseconds;
+      return this;
+    }
+
+    public Builder withTransport(Transport transport) {
+      this.transport = transport;
       return this;
     }
 
     public DatadogReporter build() {
+      if (transport == null) {
+        transport = new HttpTransport(
+            this.apiKey, connectTimeout, socketTimeout);
+      }
       return new DatadogReporter(
-        metricsRegistry,
-        this.predicate,
-        VirtualMachineMetrics.getInstance(),
-        new HttpTransport(apiKey),
-        this.clock,
-        this.host,
-        this.expansions,
-        this.vmMetrics,
-        metricNameFormatter,
-        this.tags);
+          this.registry,
+          this.transport,
+          this.filter,
+          this.clock,
+          this.host,
+          this.expansions,
+          this.rateUnit,
+          this.durationUnit,
+          this.metricNameFormatter,
+          this.tags);
     }
   }
 }

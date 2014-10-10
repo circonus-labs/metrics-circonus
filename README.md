@@ -9,7 +9,7 @@ import org.coursera.metrics.DatadogReporter.Expansions._
 
 ...
 val expansions = EnumSet.of(COUNT, RATE_1_MINUTE, RATE_15_MINUTE, MEDIAN, P95, P99)
-val reporter = new DatadogReporter.Builder()
+val reporter = DatadogReporter.forRegistry(registry)
   .withEC2Host()
   .withApiKey(apiKey)
   .withExpansions(expansions)

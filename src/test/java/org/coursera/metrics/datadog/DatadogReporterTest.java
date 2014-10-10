@@ -1,194 +1,423 @@
 package org.coursera.metrics.datadog;
 
-import static org.junit.Assert.*;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.codahale.metrics.Clock;
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Snapshot;
+import com.codahale.metrics.Timer;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InOrder;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yammer.metrics.core.Clock;
-import com.yammer.metrics.core.Counter;
-import com.yammer.metrics.core.Gauge;
-import com.yammer.metrics.core.Meter;
-import com.yammer.metrics.core.MetricPredicate;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.core.VirtualMachineMetrics;
-import com.yammer.metrics.core.Timer;
-import org.coursera.metrics.datadog.DatadogReporter.Expansions;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class DatadogReporterTest {
-
-  MetricsRegistry metricsRegistry;
-  MockTransport transport;
-  VirtualMachineMetrics vm;
-  Clock clock;
-  DatadogReporter ddNoHost;
-  DatadogReporter dd;
-  List<String> tags;
-  static final MetricPredicate ALL = MetricPredicate.ALL;
+  private static final String HOST = "hostname";
+  private final long timestamp = 1000198;
+  private final Clock clock = mock(Clock.class);
+  private final HttpTransport transport = mock(HttpTransport.class);
+  private final HttpTransport.HttpRequest request =
+      mock(HttpTransport.HttpRequest.class);
+  private MetricRegistry metricsRegistry;
+  private DatadogReporter reporter;
+  private List<String> tags;
 
   @Before
-  public void setUp() {
-    metricsRegistry = new MetricsRegistry();
-    transport = new MockTransport();
-    clock = Clock.defaultClock();
-    vm = VirtualMachineMetrics.getInstance();
-    ddNoHost = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
-                                   VirtualMachineMetrics.getInstance(), transport,
-                                   Clock.defaultClock(),
-                                   null, DatadogReporter.Expansions.ALL, true,
-                                   new DefaultMetricNameFormatter(), tags);
-
-    dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
-                             VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-                             "hostname", DatadogReporter.Expansions.ALL, true,
-                             new DefaultMetricNameFormatter(), tags);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void testBasicSend() throws JsonParseException, JsonMappingException,
-                                     IOException {
-    dd.printVmMetrics = false;
-
-    Counter counter = metricsRegistry.newCounter(DatadogReporterTest.class,
-                                                 "my.counter");
-    counter.inc();
-
-    metricsRegistry.newGauge(DatadogReporterTest.class, "my.invocations",
-                             new Gauge<Long>() {
-                               private long numInovcations = 123;
-
-                               @Override
-                               public Long value() {
-                                 return numInovcations++;
-                               }
-
-                             });
-
-    assertEquals(0, transport.numRequests);
-    dd.run();
-    assertEquals(1, transport.numRequests);
-
-    String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
-    Map<String, Object> request = new ObjectMapper().readValue(body,
-                                                               HashMap.class);
-
-    assertEquals(1, request.keySet().size());
-    List<Object> series = (List<Object>) request.get("series");
-
-    assertEquals(2, series.size());
-    Map<String, Object> counterEntry = (Map<String, Object>) series.get(0);
-    Map<String, Object> gaugeEntry = (Map<String, Object>) series.get(1);
-
-    assertEquals("org.coursera.metrics.datadog.DatadogReporterTest.my.counter",
-                 counterEntry.get("metric"));
-    assertEquals("counter", counterEntry.get("type"));
-    List<List<Number>> points = (List<List<Number>>) counterEntry.get("points");
-    assertEquals(1, points.get(0).get(1));
-
-    assertEquals(
-        "org.coursera.metrics.datadog.DatadogReporterTest.my.invocations",
-        gaugeEntry.get("metric"));
-    assertEquals("gauge", gaugeEntry.get("type"));
-    points = (List<List<Number>>) gaugeEntry.get("points");
-    assertEquals(123, points.get(0).get(1));
+  public void setUp() throws IOException {
+    when(clock.getTime()).thenReturn(timestamp * 1000);
+    when(transport.prepare()).thenReturn(request);
+    metricsRegistry = new MetricRegistry();
+    tags = new ArrayList<String>();
+    tags.add("env:prod");
+    tags.add("version:1.0.0");
+    reporter = DatadogReporter
+        .forRegistry(metricsRegistry)
+        .withHost(HOST)
+        .withClock(clock)
+        .withTags(tags)
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.MILLISECONDS)
+        .withConnectTimeout(1000)
+        .withSocketTimeout(1000)
+        .withTransport(transport)
+        .build();
   }
 
   @Test
-  public void testTimerExpansion() throws JsonParseException, JsonMappingException,
-                                          IOException {
-    // TODO: punting on testing actual values, as Timer is a class not an interface,
-    // and requires a threadPool and all that.
-    Timer timer = metricsRegistry.newTimer(DatadogReporterTest.class, "my.timer");
-    timer.update(1, TimeUnit.MILLISECONDS);
+  public void reportsByteGaugeValues() throws Exception {
+    Gauge gauge = gauge((byte) 1);
 
-    for (Expansions expansion : Expansions.ALL) {
-      expansionTestHelper(expansion);
+    reporter.report(map("gauge", gauge),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    gaugeTestHelper("gauge", (byte) 1, timestamp, HOST, tags);
+  }
+
+  @Test
+  public void reportsShortGaugeValues() throws Exception {
+    reporter.report(map("gauge", gauge((short) 1)),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    gaugeTestHelper("gauge", (short) 1, timestamp, HOST, tags);
+  }
+
+  @Test
+  public void reportsIntegerGaugeValues() throws Exception {
+    reporter.report(map("gauge", gauge(1)),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    gaugeTestHelper("gauge", 1, timestamp, HOST, tags);
+  }
+
+  @Test
+  public void reportsLongGaugeValues() throws Exception {
+    reporter.report(map("gauge", gauge(1L)),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    gaugeTestHelper("gauge", 1L, timestamp, HOST, tags);
+  }
+
+  @Test
+  public void reportsFloatGaugeValues() throws Exception {
+    reporter.report(map("gauge", gauge(1.1f)),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    gaugeTestHelper("gauge", 1.1f, timestamp, HOST, tags);
+  }
+
+  @Test
+  public void reportsDoubleGaugeValues() throws Exception {
+    reporter.report(map("gauge", gauge(1.1)),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    gaugeTestHelper("gauge", 1.1, timestamp, HOST, tags);
+  }
+
+  @Test
+  public void reportsCounters() throws Exception {
+    final Counter counter = mock(Counter.class);
+    when(counter.getCount()).thenReturn(100L);
+
+    reporter.report(this.<Gauge>map(),
+                    this.<Counter>map("counter", counter),
+                    this.<Histogram>map(),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addCounter("counter", 100L, timestamp, HOST, tags);
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsHistograms() throws Exception {
+    final Histogram histogram = mock(Histogram.class);
+    when(histogram.getCount()).thenReturn(1L);
+
+    final Snapshot snapshot = mock(Snapshot.class);
+    when(snapshot.getMax()).thenReturn(2L);
+    when(snapshot.getMean()).thenReturn(3.0);
+    when(snapshot.getMin()).thenReturn(4L);
+    when(snapshot.getStdDev()).thenReturn(5.0);
+    when(snapshot.getMedian()).thenReturn(6.0);
+    when(snapshot.get75thPercentile()).thenReturn(7.0);
+    when(snapshot.get95thPercentile()).thenReturn(8.0);
+    when(snapshot.get98thPercentile()).thenReturn(9.0);
+    when(snapshot.get99thPercentile()).thenReturn(10.0);
+    when(snapshot.get999thPercentile()).thenReturn(11.0);
+
+    when(histogram.getSnapshot()).thenReturn(snapshot);
+
+    reporter.report(this.<Gauge>map(),
+                    this.<Counter>map(),
+                    this.<Histogram>map("histogram", histogram),
+                    this.<Meter>map(),
+                    this.<Timer>map());
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addCounter("histogram.count", 1L, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.max", 2L, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.mean", 3.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.min", 4L, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.stddev", 5.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.p50", 6.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.p75", 7.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.p95", 8.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.p98", 9.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.p99", 10.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("histogram.p999", 11.0, timestamp, HOST, tags);
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsMeters() throws Exception {
+    final Meter meter = mock(Meter.class);
+    when(meter.getCount()).thenReturn(1L);
+    when(meter.getOneMinuteRate()).thenReturn(2.0);
+    when(meter.getFiveMinuteRate()).thenReturn(3.0);
+    when(meter.getFifteenMinuteRate()).thenReturn(4.0);
+    when(meter.getMeanRate()).thenReturn(5.0);
+
+    reporter.report(this.<Gauge>map(),
+                    this.<Counter>map(),
+                    this.<Histogram>map(),
+                    this.<Meter>map("meter", meter),
+                    this.<Timer>map());
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addCounter("meter.count", 1L, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("meter.1MinuteRate", 2.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("meter.5MinuteRate", 3.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("meter.15MinuteRate", 4.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("meter.meanRate", 5.0, timestamp, HOST, tags);
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsTimers() throws Exception {
+    final Timer timer = mock(Timer.class);
+    when(timer.getCount()).thenReturn(1L);
+    when(timer.getMeanRate()).thenReturn(2.0);
+    when(timer.getOneMinuteRate()).thenReturn(3.0);
+    when(timer.getFiveMinuteRate()).thenReturn(4.0);
+    when(timer.getFifteenMinuteRate()).thenReturn(5.0);
+
+    final Snapshot snapshot = mock(Snapshot.class);
+    when(snapshot.getMax()).thenReturn(TimeUnit.MILLISECONDS.toNanos(100));
+    when(snapshot.getMean())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(200));
+    when(snapshot.getMin())
+        .thenReturn(TimeUnit.MILLISECONDS.toNanos(300));
+    when(snapshot.getStdDev())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(400));
+    when(snapshot.getMedian())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(500));
+    when(snapshot.get75thPercentile())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(600));
+    when(snapshot.get95thPercentile())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(700));
+    when(snapshot.get98thPercentile())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(800));
+    when(snapshot.get99thPercentile())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(900));
+    when(snapshot.get999thPercentile())
+        .thenReturn((double) TimeUnit.MILLISECONDS.toNanos(1000));
+
+    when(timer.getSnapshot()).thenReturn(snapshot);
+
+    reporter.report(this.<Gauge>map(),
+            this.<Counter>map(),
+            this.<Histogram>map(),
+            this.<Meter>map(),
+            map("timer", timer));
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addGauge("timer.max", 100.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.mean", 200.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.min", 300.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.stddev", 400.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.p50", 500.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.p75", 600.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.p95", 700.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.p98", 800.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.p99", 900.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.p999", 1000.0, timestamp, HOST, tags);
+    inOrder.verify(request).addCounter("timer.count", 1L, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.1MinuteRate", 3.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.5MinuteRate", 4.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.15MinuteRate", 5.0, timestamp, HOST, tags);
+    inOrder.verify(request).addGauge("timer.meanRate", 2.0, timestamp, HOST, tags);
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsWithFilter() throws Exception {
+    Counter counter = metricsRegistry.counter("my.metric.counter");
+    counter.inc(123);
+    Counter unwantedCounter = metricsRegistry.counter("counter");
+    unwantedCounter.inc(456);
+
+    DatadogReporter reporterWithFilter =
+        DatadogReporter
+            .forRegistry(metricsRegistry)
+            .withHost(HOST)
+            .withClock(clock)
+            .withTags(tags)
+            .filter(new NameMetricFilter("my.metric"))
+            .withTransport(transport)
+            .build();
+
+    reporterWithFilter.report();
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addCounter("my.metric.counter",
+                                       123L,
+                                       timestamp,
+            HOST,
+                                       tags);
+    inOrder.verify(request, never()).addCounter("counter",
+                                                123L,
+                                                timestamp,
+            HOST,
+                                                tags);
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsWithTagged() throws Exception {
+    final Meter meter = mock(Meter.class);
+    when(meter.getCount()).thenReturn(1L);
+    when(meter.getOneMinuteRate()).thenReturn(2.0);
+    when(meter.getFiveMinuteRate()).thenReturn(3.0);
+    when(meter.getFifteenMinuteRate()).thenReturn(4.0);
+    when(meter.getMeanRate()).thenReturn(5.0);
+    metricsRegistry.meter(MetricRegistry.name(String.class, "meter[with,tags]"));
+
+    reporter.report();
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(request)
+        .addCounter("java.lang.String.meter.count[with,tags]",
+                    0L,
+                    timestamp,
+                HOST,
+                    tags);
+    inOrder.verify(request)
+        .addGauge("java.lang.String.meter.1MinuteRate[with,tags]",
+                   0.0,
+                   timestamp,
+                HOST,
+                   tags);
+    inOrder.verify(request)
+        .addGauge("java.lang.String.meter.5MinuteRate[with,tags]",
+                   0.0,
+                   timestamp,
+                HOST,
+                   tags);
+    inOrder.verify(request)
+        .addGauge("java.lang.String.meter.15MinuteRate[with,tags]",
+                   0.0,
+                   timestamp,
+                HOST,
+                   tags);
+    inOrder.verify(request)
+        .addGauge("java.lang.String.meter.meanRate[with,tags]",
+                   0.0,
+                   timestamp,
+                HOST,
+                   tags);
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  private class NameMetricFilter implements MetricFilter {
+    private final String include;
+
+    private NameMetricFilter(final String include) {
+      this.include = include;
+    }
+
+    public boolean matches(final String name, final Metric metric) {
+      return (name.contains(include));
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private void expansionTestHelper(Expansions expansion) throws JsonParseException,
-                                                                JsonMappingException, IOException {
-    MockTransport transport = new MockTransport();
-    DatadogReporter dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
-                                             VirtualMachineMetrics.getInstance(), transport,
-                                             Clock.defaultClock(),
-                                             "hostname", EnumSet.of(expansion), false,
-                                             new DefaultMetricNameFormatter(), tags);
-
-    assertEquals(0, transport.numRequests);
-    dd.run();
-    assertEquals(1, transport.numRequests);
-
-    String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
-    Map<String, Object> request = new ObjectMapper().readValue(body,
-                                                               HashMap.class);
-    List<Object> series = (List<Object>) request.get("series");
-
-    assertEquals(1, series.size());
-    Map<String, Object> metric = (Map<String, Object>) series.get(0);
-
-    assertEquals(
-        "org.coursera.metrics.DatadogReporterTest.my.timer." + expansion.toString(),
-        metric.get("metric"));
-    assertEquals(expansion.equals(Expansions.COUNT) ? "counter" : "gauge", metric.get("type"));
+  private <T> SortedMap<String, T> map() {
+    return new TreeMap<String, T>();
   }
 
-  @Test
-  public void testSupplyHostname() throws UnsupportedEncodingException {
-    Counter counter = metricsRegistry.newCounter(DatadogReporterTest.class,
-                                                 "my.counter");
-    counter.inc();
-
-    assertEquals(0, transport.numRequests);
-    ddNoHost.run();
-    assertEquals(1, transport.numRequests);
-    String noHostBody = new String(transport.lastRequest.getPostBody(), "UTF-8");
-
-    dd.run();
-    assertEquals(2, transport.numRequests);
-    String hostBody = new String(transport.lastRequest.getPostBody(), "UTF-8");
-
-    assertFalse(noHostBody.indexOf("\"host\":\"hostname\"") > -1);
-    assertTrue(hostBody.indexOf("\"host\":\"hostname\"") > -1);
+  private <T> SortedMap<String, T> map(String name, T metric) {
+    final TreeMap<String, T> map = new TreeMap<String, T>();
+    map.put(name, metric);
+    return map;
   }
 
-  @SuppressWarnings("unchecked")
-  @Test
-  public void testTaggedMeter() throws Throwable {
-    Meter s = metricsRegistry.newMeter(String.class,
-                                       "meter[with,tags]", "ticks", TimeUnit.SECONDS);
-    s.mark();
+  private <T> Gauge gauge(T value) {
+    final Gauge gauge = mock(Gauge.class);
+    when(gauge.getValue()).thenReturn(value);
+    return gauge;
+  }
 
-    ddNoHost.printVmMetrics = false;
-    ddNoHost.run();
-    String body = new String(transport.lastRequest.getPostBody(), "UTF-8");
+  private void gaugeTestHelper(String name,
+                               Number value,
+                               long timestamp,
+                               String host,
+                               List<String> additionalTags)
+      throws Exception {
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addGauge(name,
+                                     value,
+                                     timestamp,
+                                     host,
+                                     additionalTags);
+    inOrder.verify(request).send();
 
-    Map<String, Object> request = new ObjectMapper().readValue(body,
-                                                               HashMap.class);
-    List<Object> series = (List<Object>) request.get("series");
-
-    for (Object o : series) {
-      HashMap<String, Object> rec = (HashMap<String, Object>) o;
-      List<String> tags = (List<String>) rec.get("tags");
-      String name = rec.get("metric").toString();
-
-      assertTrue(name.startsWith("java.lang.String.meter"));
-      assertEquals("with", tags.get(0));
-      assertEquals("tags", tags.get(1));
-    }
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
   }
 }
-

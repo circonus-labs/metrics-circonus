@@ -1,27 +1,19 @@
 package org.coursera.metrics.datadog;
 
-import com.yammer.metrics.core.MetricName;
-
 public class DefaultMetricNameFormatter implements MetricNameFormatter {
 
-  public String format(MetricName name, String... path) {
-    final StringBuilder sb = new StringBuilder(name.getGroup());
-    sb.append('.');
-    sb.append(name.getType()).append('.');
+  public String format(String name, String... path) {
+    final StringBuilder sb = new StringBuilder();
 
-    if (name.hasScope()) {
-      sb.append(name.getScope()).append('.');
-    }
-
-    String[] metricParts = name.getName().split("\\[");
+    String[] metricParts = name.split("\\[");
     sb.append(metricParts[0]);
 
     for (String part : path) {
-      sb.append('.').append(part);
+        sb.append('.').append(part);
     }
 
     for (int i = 1; i < metricParts.length; i++) {
-      sb.append('[').append(metricParts[i]);
+        sb.append('[').append(metricParts[i]);
     }
     return sb.toString();
   }

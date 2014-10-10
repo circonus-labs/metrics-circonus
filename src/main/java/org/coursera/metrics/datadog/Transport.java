@@ -1,7 +1,7 @@
 package org.coursera.metrics.datadog;
 
 import java.io.IOException;
-import java.io.OutputStream;
+import java.util.List;
 
 public interface Transport {
 
@@ -9,8 +9,18 @@ public interface Transport {
 
   public interface Request {
 
-    OutputStream getBodyWriter();
-
+    void addGauge(String name,
+                  Number value,
+                  long timestamp,
+                  String host,
+                  List<String> additionalTags)
+        throws IOException;
+    void addCounter(String name,
+                    Long value,
+                    long timestamp,
+                    String host,
+                    List<String> additionalTags)
+        throws IOException;
     void send() throws Exception;
   }
 }
