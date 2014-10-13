@@ -11,10 +11,11 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
-import org.coursera.metrics.datadog.transport.HttpTransport;
-import org.coursera.metrics.datadog.transport.Transport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.coursera.metrics.datadog.transport.Transport;
+import org.coursera.metrics.datadog.model.DatadogCounter;
+import org.coursera.metrics.datadog.model.DatadogGauge;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -46,11 +47,7 @@ public class DatadogReporter extends ScheduledReporter {
                           TimeUnit durationUnit,
                           MetricNameFormatter metricNameFormatter,
                           List<String> tags) {
-    super(metricRegistry,
-          "datadog-reporter",
-          filter,
-          rateUnit,
-          durationUnit);
+    super(metricRegistry, "datadog-reporter", filter, rateUnit, durationUnit);
     this.clock = clock;
     this.host = host;
     this.expansions = expansions;
@@ -100,160 +97,160 @@ public class DatadogReporter extends ScheduledReporter {
       throws IOException {
     final Snapshot snapshot = timer.getSnapshot();
 
-    request.addGauge(maybeExpand(Expansion.MAX, name),
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.MAX, name),
                      toNumber(convertDuration(snapshot.getMax())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.MEAN, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.MEAN, name),
                      toNumber(convertDuration(snapshot.getMean())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.MIN, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.MIN, name),
                      toNumber(convertDuration(snapshot.getMin())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.STD_DEV, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.STD_DEV, name),
                      toNumber(convertDuration(snapshot.getStdDev())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P50, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P50, name),
                      toNumber(convertDuration(snapshot.getMedian())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P75, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P75, name),
                      toNumber(convertDuration(snapshot.get75thPercentile())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P95, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P95, name),
                      toNumber(convertDuration(snapshot.get95thPercentile())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P98, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P98, name),
                      toNumber(convertDuration(snapshot.get98thPercentile())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P99, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P99, name),
                      toNumber(convertDuration(snapshot.get99thPercentile())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P999, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P999, name),
                      toNumber(convertDuration(snapshot.get999thPercentile())),
                      timestamp,
                      host,
-                     tags);
+                     tags));
 
     reportMetered(name, timer, timestamp);
   }
 
   private void reportMetered(String name, Metered meter, long timestamp)
       throws IOException {
-    request.addCounter(maybeExpand(Expansion.COUNT, name),
+    request.addCounter(new DatadogCounter(maybeExpand(Expansion.COUNT, name),
                        meter.getCount(),
                        timestamp,
                        host,
-                       tags);
-    request.addGauge(maybeExpand(Expansion.RATE_1_MINUTE, name),
+                       tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.RATE_1_MINUTE, name),
                      toNumber(convertRate(meter.getOneMinuteRate())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.RATE_5_MINUTE, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.RATE_5_MINUTE, name),
                      toNumber(convertRate(meter.getFiveMinuteRate())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.RATE_15_MINUTE, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.RATE_15_MINUTE, name),
                      toNumber(convertRate(meter.getFifteenMinuteRate())),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.RATE_MEAN, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.RATE_MEAN, name),
                      toNumber(convertRate(meter.getMeanRate())),
                      timestamp,
                      host,
-                     tags);
+                     tags));
   }
 
   private void reportHistogram(String name, Histogram histogram, long timestamp)
       throws IOException {
     final Snapshot snapshot = histogram.getSnapshot();
 
-    request.addCounter(maybeExpand(Expansion.COUNT, name),
+    request.addCounter(new DatadogCounter(maybeExpand(Expansion.COUNT, name),
                        histogram.getCount(),
                        timestamp,
                        host,
-                       tags);
-    request.addGauge(maybeExpand(Expansion.MAX, name),
+                       tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.MAX, name),
                      toNumber(snapshot.getMax()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.MEAN, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.MEAN, name),
                      toNumber(snapshot.getMean()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.MIN, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.MIN, name),
                      toNumber(snapshot.getMin()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.STD_DEV, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.STD_DEV, name),
                      toNumber(snapshot.getStdDev()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P50, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P50, name),
                      toNumber(snapshot.getMedian()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P75, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P75, name),
                      toNumber(snapshot.get75thPercentile()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P95, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P95, name),
                      toNumber(snapshot.get95thPercentile()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P98, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P98, name),
                      toNumber(snapshot.get98thPercentile()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P99, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P99, name),
                      toNumber(snapshot.get99thPercentile()),
                      timestamp,
                      host,
-                     tags);
-    request.addGauge(maybeExpand(Expansion.P999, name),
+                     tags));
+    request.addGauge(new DatadogGauge(maybeExpand(Expansion.P999, name),
                      toNumber(snapshot.get999thPercentile()),
                      timestamp,
                      host,
-                     tags);
+                     tags));
   }
 
   private void reportCounter(String name, Counter counter, long timestamp)
       throws IOException {
-    request.addCounter(name, counter.getCount(), timestamp, host, tags);
+    request.addCounter(new DatadogCounter(name, counter.getCount(), timestamp, host, tags));
   }
 
   private void reportGauge(String name, Gauge gauge, long timestamp)
       throws IOException {
     final Number value = toNumber(gauge.getValue());
     if (value != null) {
-      request.addGauge(name, value, timestamp, host, tags);
+      request.addGauge(new DatadogGauge(name, value, timestamp, host, tags));
     }
   }
 
@@ -312,7 +309,6 @@ public class DatadogReporter extends ScheduledReporter {
     private final MetricRegistry registry;
     private String host;
     private EnumSet<Expansion> expansions;
-    private String apiKey;
     private Clock clock;
     private TimeUnit rateUnit;
     private TimeUnit durationUnit;
@@ -320,8 +316,6 @@ public class DatadogReporter extends ScheduledReporter {
     private MetricNameFormatter metricNameFormatter;
     private List<String> tags;
     private Transport transport;
-    private int connectTimeout;
-    private int socketTimeout;
 
     public Builder(MetricRegistry registry) {
       this.registry = registry;
@@ -332,8 +326,6 @@ public class DatadogReporter extends ScheduledReporter {
       this.filter = MetricFilter.ALL;
       this.metricNameFormatter = new DefaultMetricNameFormatter();
       this.tags = new ArrayList<String>();
-      this.connectTimeout = 5000;
-      this.socketTimeout = 5000;
     }
 
     public Builder withHost(String host) {
@@ -351,24 +343,15 @@ public class DatadogReporter extends ScheduledReporter {
       return this;
     }
 
-    public Builder withApiKey(String key) {
-      this.apiKey = key;
-      return this;
-    }
-
     public Builder convertRatesTo(TimeUnit rateUnit) {
       this.rateUnit = rateUnit;
       return this;
     }
 
     /**
-     * Tags that would be sent to datadog with each and every metrics. This
-     * could be used to set global metrics like version of the app,
-     * environment etc.
-     *
-     * @param tags List of tags eg: [env:prod, version:1.0.1] etc
-     * @return the {@link org.coursera.metrics.datadog.DatadogReporter.Builder Builder}
-     * object
+     * Tags that would be sent to datadog with each and every metrics. This could be used to set
+     * global metrics like version of the app, environment etc.
+     * @param tags List of tags eg: [env:prod, version:1.0.1, name:kafka_client] etc
      */
     public Builder withTags(List<String> tags) {
       this.tags = tags;
@@ -395,16 +378,13 @@ public class DatadogReporter extends ScheduledReporter {
       return this;
     }
 
-    public Builder withConnectTimeout(int milliseconds) {
-      this.connectTimeout = milliseconds;
-      return this;
-    }
-
-    public Builder withSocketTimeout(int milliseconds) {
-      this.socketTimeout = milliseconds;
-      return this;
-    }
-
+    /**
+     * The transport mechanism to push metrics to datadog. Supports http webservice and UDP
+     * dogstatsd protocol as of now.
+     *
+     * @see org.coursera.metrics.datadog.transport.HttpTransport
+     * @see org.coursera.metrics.datadog.transport.UdpTransport
+     */
     public Builder withTransport(Transport transport) {
       this.transport = transport;
       return this;
@@ -412,8 +392,8 @@ public class DatadogReporter extends ScheduledReporter {
 
     public DatadogReporter build() {
       if (transport == null) {
-        transport = new HttpTransport(
-            this.apiKey, connectTimeout, socketTimeout);
+        LOG.error("Transport is null. Please set a valid transport. " +
+            "None of the metrics would get reported to datadog");
       }
       return new DatadogReporter(
           this.registry,

@@ -64,4 +64,30 @@ public abstract class DatadogSeries<T extends Number> {
     points.add(point);
     return points;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof DatadogSeries)) return false;
+
+    DatadogSeries that = (DatadogSeries) o;
+
+    if (!count.equals(that.count)) return false;
+    if (!epoch.equals(that.epoch)) return false;
+    if (!host.equals(that.host)) return false;
+    if (!name.equals(that.name)) return false;
+    if (!tags.equals(that.tags)) return false;
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = name.hashCode();
+    result = 31 * result + count.hashCode();
+    result = 31 * result + epoch.hashCode();
+    result = 31 * result + host.hashCode();
+    result = 31 * result + tags.hashCode();
+    return result;
+  }
 }
