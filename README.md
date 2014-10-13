@@ -6,10 +6,13 @@ Simple Metrics reporter that sends reporting info to Datadog, supports both http
 ~~~scala
 import org.coursera.metrics.DatadogReporter
 import org.coursera.metrics.DatadogReporter.Expansions._
+import org.coursera.metrics.datadog.transport.Transport
+import org.coursera.metrics.datadog.transport.HttpTransport
+import org.coursera.metrics.datadog.transport.UdpTransport
 
 ...
 val expansions = EnumSet.of(COUNT, RATE_1_MINUTE, RATE_15_MINUTE, MEDIAN, P95, P99)
-val httpTransport = new UdpTransport.Builder().withApiKey(apiKey).build()
+val httpTransport = new HttpTransport.Builder().withApiKey(apiKey).build()
 val reporter = DatadogReporter.forRegistry(registry)
   .withEC2Host()
   .withTransport(httpTransport)
