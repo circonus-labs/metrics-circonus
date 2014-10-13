@@ -4,12 +4,12 @@ Simple Metrics reporter that sends reporting info to Datadog.
 ## Usage
 
 ~~~scala
-import com.yammer.metrics.reporting.DatadogReporter
-import com.yammer.metrics.reporting.DatadogReporter.Expansions._
+import org.coursera.metrics.DatadogReporter
+import org.coursera.metrics.DatadogReporter.Expansions._
 
 ...
 val expansions = EnumSet.of(COUNT, RATE_1_MINUTE, RATE_15_MINUTE, MEDIAN, P95, P99)
-val reporter = new DatadogReporter.Builder()
+val reporter = DatadogReporter.forRegistry(registry)
   .withEC2Host()
   .withApiKey(apiKey)
   .withExpansions(expansions)
