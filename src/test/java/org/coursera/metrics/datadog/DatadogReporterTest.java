@@ -10,6 +10,7 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
+import org.coursera.metrics.datadog.transport.HttpTransport;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;

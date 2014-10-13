@@ -1,4 +1,4 @@
-package org.coursera.metrics.datadog;
+package org.coursera.metrics.datadog.transport;
 
 import java.io.IOException;
 import java.util.List;
