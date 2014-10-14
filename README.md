@@ -1,22 +1,37 @@
 # Metrics Datadog Reporter
-Simple Metrics reporter that sends reporting info to Datadog.
+Simple Metrics reporter that sends reporting info to Datadog, supports both http and udp.
 
 ## Usage
 
 ~~~scala
 import org.coursera.metrics.DatadogReporter
 import org.coursera.metrics.DatadogReporter.Expansions._
+import org.coursera.metrics.datadog.transport.Transport
+import org.coursera.metrics.datadog.transport.HttpTransport
+import org.coursera.metrics.datadog.transport.UdpTransport
 
 ...
 val expansions = EnumSet.of(COUNT, RATE_1_MINUTE, RATE_15_MINUTE, MEDIAN, P95, P99)
+val httpTransport = new HttpTransport.Builder().withApiKey(apiKey).build()
 val reporter = DatadogReporter.forRegistry(registry)
   .withEC2Host()
-  .withApiKey(apiKey)
+  .withTransport(httpTransport)
   .withExpansions(expansions)
   .withMetricNameFormatter(ShortenedNameFormatter)
   .build()
 
 reporter.start(10, TimeUnit.SECONDS)
+~~~
+
+Example of using UDP transport:
+
+~~~scala
+...
+val udpTransport = new UdpTransport.Builder().build()
+val reporter = 
+    ...
+    .withTransport(udpTransport)
+    ...
 ~~~
 
 
