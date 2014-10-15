@@ -5,6 +5,8 @@ import org.coursera.metrics.datadog.model.DatadogGauge;
 import org.coursera.metrics.serializer.JsonSerializer;
 import org.coursera.metrics.serializer.Serializer;
 import org.apache.http.entity.ContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -16,6 +18,8 @@ import static org.apache.http.client.fluent.Request.*;
  * @see <a href="http://docs.datadoghq.com/api/">API docs</a>
  */
 public class HttpTransport implements Transport {
+
+  private static final Logger LOG = LoggerFactory.getLogger(HttpTransport.class);
 
   private final static String BASE_URL = "https://app.datadoghq.com/api/v1";
   private final String seriesUrl;
@@ -82,13 +86,24 @@ public class HttpTransport implements Transport {
 
     public void send() throws Exception {
       serializer.endObject();
+      String postBody = serializer.getAsString();
+      if (LOG.isDebugEnabled()) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sending HTTP POST request to ");
+        sb.append(this.transport.seriesUrl);
+        sb.append(", POST body is: \n");
+        sb.append(postBody);
+      }
+      long start = System.currentTimeMillis();
       Post(this.transport.seriesUrl)
           .useExpectContinue()
           .connectTimeout(this.transport.connectTimeout)
           .socketTimeout(this.transport.socketTimeout)
-          .bodyString(serializer.getAsString(), ContentType.APPLICATION_JSON)
+          .bodyString(postBody, ContentType.APPLICATION_JSON)
           .execute()
           .discardContent();
+      long elapsed = System.currentTimeMillis() - start;
+      LOG.debug("Sent metrics to Datadog in " + elapsed + " ms");
     }
   }
 }
