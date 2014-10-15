@@ -29,11 +29,11 @@ public class DatadogReporter extends ScheduledReporter {
 
   private static final Logger LOG = LoggerFactory.getLogger(DatadogReporter.class);
 
-  private static final Expansion[] STATS_EXPANSIONS = { Expansion.MIN, Expansion.MAX,
-      Expansion.STD_DEV, Expansion.MEAN, Expansion.MEDIAN, Expansion.P75, Expansion.P95,
+  private static final Expansion[] STATS_EXPANSIONS = { Expansion.MAX, Expansion.MEAN,
+      Expansion.MIN, Expansion.STD_DEV, Expansion.MEDIAN, Expansion.P75, Expansion.P95,
       Expansion.P98, Expansion.P99, Expansion.P999 };
-  private static final Expansion[] RATE_EXPANSIONS = { Expansion.RATE_MEAN,
-      Expansion.RATE_1_MINUTE, Expansion.RATE_5_MINUTE, Expansion.RATE_15_MINUTE };
+  private static final Expansion[] RATE_EXPANSIONS = { Expansion.RATE_1_MINUTE,
+      Expansion.RATE_5_MINUTE, Expansion.RATE_15_MINUTE, Expansion.RATE_MEAN };
 
   private final Transport transport;
   private final Clock clock;
@@ -103,14 +103,14 @@ public class DatadogReporter extends ScheduledReporter {
       throws IOException {
     final Snapshot snapshot = timer.getSnapshot();
 
-    double[] values = { snapshot.getMin(), snapshot.getMax(), snapshot.getStdDev(), snapshot.getMean(),
+    double[] values = { snapshot.getMax(), snapshot.getMean(), snapshot.getMin(), snapshot.getStdDev(),
         snapshot.getMedian(), snapshot.get75thPercentile(), snapshot.get95thPercentile(), snapshot.get98thPercentile(),
         snapshot.get99thPercentile(), snapshot.get999thPercentile() };
 
     for (int i = 0; i < STATS_EXPANSIONS.length; i++) {
       if (expansions.contains(STATS_EXPANSIONS[i])) {
         request.addGauge(new DatadogGauge(
-            addExpansionSuffix(name, STATS_EXPANSIONS[i]),
+            appendExpansionSuffix(name, STATS_EXPANSIONS[i]),
             toNumber(convertDuration(values[i])),
             timestamp,
             host,
@@ -125,20 +125,20 @@ public class DatadogReporter extends ScheduledReporter {
       throws IOException {
     if (expansions.contains(Expansion.COUNT)) {
       request.addCounter(new DatadogCounter(
-          addExpansionSuffix(name, Expansion.COUNT),
+          appendExpansionSuffix(name, Expansion.COUNT),
           meter.getCount(),
           timestamp,
           host,
           tags));
     }
 
-    double[] values = { meter.getMeanRate(), meter.getOneMinuteRate(), meter.getFiveMinuteRate(),
-        meter.getFifteenMinuteRate() };
+    double[] values = { meter.getOneMinuteRate(), meter.getFiveMinuteRate(),
+        meter.getFifteenMinuteRate(), meter.getMeanRate() };
 
     for (int i = 0; i < RATE_EXPANSIONS.length; i++) {
       if (expansions.contains(RATE_EXPANSIONS[i])) {
         request.addGauge(new DatadogGauge(
-            addExpansionSuffix(name, RATE_EXPANSIONS[i]),
+            appendExpansionSuffix(name, RATE_EXPANSIONS[i]),
             toNumber(convertRate(values[i])),
             timestamp,
             host,
@@ -153,21 +153,21 @@ public class DatadogReporter extends ScheduledReporter {
 
     if (expansions.contains(Expansion.COUNT)) {
       request.addCounter(new DatadogCounter(
-          addExpansionSuffix(name, Expansion.COUNT),
+          appendExpansionSuffix(name, Expansion.COUNT),
           histogram.getCount(),
           timestamp,
           host,
           tags));
     }
 
-    double[] values = { snapshot.getMin(), snapshot.getMax(), snapshot.getStdDev(), snapshot.getMean(),
+    Number[] values = { snapshot.getMax(), snapshot.getMean(), snapshot.getMin(), snapshot.getStdDev(),
         snapshot.getMedian(), snapshot.get75thPercentile(), snapshot.get95thPercentile(), snapshot.get98thPercentile(),
         snapshot.get99thPercentile(), snapshot.get999thPercentile() };
 
     for (int i = 0; i < STATS_EXPANSIONS.length; i++) {
       if (expansions.contains(STATS_EXPANSIONS[i])) {
         request.addGauge(new DatadogGauge(
-            addExpansionSuffix(name, STATS_EXPANSIONS[i]),
+            appendExpansionSuffix(name, STATS_EXPANSIONS[i]),
             toNumber(values[i]),
             timestamp,
             host,
@@ -196,7 +196,7 @@ public class DatadogReporter extends ScheduledReporter {
     return null;
   }
 
-  private String addExpansionSuffix(String name, Expansion expansion) {
+  private String appendExpansionSuffix(String name, Expansion expansion) {
     return metricNameFormatter.format(name, expansion.toString());
   }
 

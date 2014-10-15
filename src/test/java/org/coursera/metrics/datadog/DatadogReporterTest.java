@@ -182,7 +182,7 @@ public class DatadogReporterTest {
     inOrder.verify(request).addGauge(new DatadogGauge("histogram.mean", 3.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("histogram.min", 4L, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("histogram.stddev", 5.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("histogram.p50", 6.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.median", 6.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("histogram.p75", 7.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("histogram.p95", 8.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("histogram.p98", 9.0, timestamp, HOST, tags));
@@ -268,7 +268,7 @@ public class DatadogReporterTest {
     inOrder.verify(request).addGauge(new DatadogGauge("timer.mean", 200.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("timer.min", 300.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("timer.stddev", 400.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("timer.p50", 500.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.median", 500.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("timer.p75", 600.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("timer.p95", 700.0, timestamp, HOST, tags));
     inOrder.verify(request).addGauge(new DatadogGauge("timer.p98", 800.0, timestamp, HOST, tags));
