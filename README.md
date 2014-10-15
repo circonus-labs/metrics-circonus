@@ -1,5 +1,5 @@
 # Metrics Datadog Reporter
-Simple Metrics reporter that sends reporting info to Datadog, supports both http and udp.
+Simple Metrics reporter that sends reporting info to Datadog, supports both HTTP and UDP.
 
 ## Usage
 
@@ -42,7 +42,7 @@ Metrics datadog reporter is available as an artifact on
 
 * Group: org.coursera
 * Artifact: metrics-datadog
-* Version: 0.1.7
+* Version: 1.0.0
 
 
 ## Contributing
