@@ -1,6 +1,8 @@
 package org.coursera.metrics.datadog.transport;
 
-import org.apache.http.client.fluent.Content;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.fluent.Response;
+import org.apache.http.util.EntityUtils;
 import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
 import org.coursera.metrics.serializer.JsonSerializer;
@@ -97,21 +99,25 @@ public class HttpTransport implements Transport {
         LOG.debug(sb.toString());
       }
       long start = System.currentTimeMillis();
-      Content content = Post(this.transport.seriesUrl)
+      Response response = Post(this.transport.seriesUrl)
           .useExpectContinue()
           .connectTimeout(this.transport.connectTimeout)
           .socketTimeout(this.transport.socketTimeout)
           .bodyString(postBody, ContentType.APPLICATION_JSON)
-          .execute()
-          .returnContent();
+          .execute();
       long elapsed = System.currentTimeMillis() - start;
 
       if (LOG.isDebugEnabled()) {
+        HttpResponse httpResponse = response.returnResponse();
         StringBuilder sb = new StringBuilder();
-        sb.append("Sent metrics to Datadog in ");
-        sb.append(elapsed);
-        sb.append(" ms, response was: \n");
-        sb.append(content.asString());
+
+        sb.append("Sent metrics to Datadog: ");
+        sb.append("  Timing: ").append(elapsed).append(" ms\n");
+        sb.append("  Status: ").append(httpResponse.getStatusLine().getStatusCode()).append("\n");
+
+        String content = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+        sb.append("  Content: ").append(content);
+
         LOG.debug(sb.toString());
       }
     }
