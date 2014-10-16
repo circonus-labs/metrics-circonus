@@ -1,5 +1,6 @@
 package org.coursera.metrics.datadog.transport;
 
+import org.apache.http.client.fluent.Content;
 import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
 import org.coursera.metrics.serializer.JsonSerializer;
@@ -93,17 +94,26 @@ public class HttpTransport implements Transport {
         sb.append(this.transport.seriesUrl);
         sb.append(", POST body is: \n");
         sb.append(postBody);
+        LOG.debug(sb.toString());
       }
       long start = System.currentTimeMillis();
-      Post(this.transport.seriesUrl)
+      Content content = Post(this.transport.seriesUrl)
           .useExpectContinue()
           .connectTimeout(this.transport.connectTimeout)
           .socketTimeout(this.transport.socketTimeout)
           .bodyString(postBody, ContentType.APPLICATION_JSON)
           .execute()
-          .discardContent();
+          .returnContent();
       long elapsed = System.currentTimeMillis() - start;
-      LOG.debug("Sent metrics to Datadog in " + elapsed + " ms");
+
+      if (LOG.isDebugEnabled()) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sent metrics to Datadog in ");
+        sb.append(elapsed);
+        sb.append(" ms, response was: \n");
+        sb.append(content.asString());
+        LOG.debug(sb.toString());
+      }
     }
   }
 }
