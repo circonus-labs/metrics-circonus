@@ -11,7 +11,7 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>Datadog Metrics Support</name>
-    <description>A Datadog reporter backend for yammer metrics</description>
+    <description>A Datadog reporter backend for Coda Hale's Metrics</description>
     <url>https://github.com/coursera/metrics-datadog</url>
     <licenses>
         <license>
