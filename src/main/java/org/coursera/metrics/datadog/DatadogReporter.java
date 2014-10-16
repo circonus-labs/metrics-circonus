@@ -27,8 +27,14 @@ import java.util.concurrent.TimeUnit;
 
 public class DatadogReporter extends ScheduledReporter {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(DatadogReporter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DatadogReporter.class);
+
+  private static final Expansion[] STATS_EXPANSIONS = { Expansion.MAX, Expansion.MEAN,
+      Expansion.MIN, Expansion.STD_DEV, Expansion.MEDIAN, Expansion.P75, Expansion.P95,
+      Expansion.P98, Expansion.P99, Expansion.P999 };
+  private static final Expansion[] RATE_EXPANSIONS = { Expansion.RATE_1_MINUTE,
+      Expansion.RATE_5_MINUTE, Expansion.RATE_15_MINUTE, Expansion.RATE_MEAN };
+
   private final Transport transport;
   private final Clock clock;
   private final String host;
@@ -88,7 +94,7 @@ public class DatadogReporter extends ScheduledReporter {
       }
 
       request.send();
-    } catch (Exception e) {
+    } catch (Throwable e) {
       LOG.error("Error reporting metrics to Datadog", e);
     }
   }
@@ -97,174 +103,77 @@ public class DatadogReporter extends ScheduledReporter {
       throws IOException {
     final Snapshot snapshot = timer.getSnapshot();
 
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.MAX, name),
-        toNumber(convertDuration(snapshot.getMax())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.MEAN, name),
-        toNumber(convertDuration(snapshot.getMean())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.MIN, name),
-        toNumber(convertDuration(snapshot.getMin())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.STD_DEV, name),
-        toNumber(convertDuration(snapshot.getStdDev())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P50, name),
-        toNumber(convertDuration(snapshot.getMedian())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P75, name),
-        toNumber(convertDuration(snapshot.get75thPercentile())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P95, name),
-        toNumber(convertDuration(snapshot.get95thPercentile())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P98, name),
-        toNumber(convertDuration(snapshot.get98thPercentile())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P99, name),
-        toNumber(convertDuration(snapshot.get99thPercentile())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P999, name),
-        toNumber(convertDuration(snapshot.get999thPercentile())),
-        timestamp,
-        host,
-        tags));
+    double[] values = { snapshot.getMax(), snapshot.getMean(), snapshot.getMin(), snapshot.getStdDev(),
+        snapshot.getMedian(), snapshot.get75thPercentile(), snapshot.get95thPercentile(), snapshot.get98thPercentile(),
+        snapshot.get99thPercentile(), snapshot.get999thPercentile() };
+
+    for (int i = 0; i < STATS_EXPANSIONS.length; i++) {
+      if (expansions.contains(STATS_EXPANSIONS[i])) {
+        request.addGauge(new DatadogGauge(
+            appendExpansionSuffix(name, STATS_EXPANSIONS[i]),
+            toNumber(convertDuration(values[i])),
+            timestamp,
+            host,
+            tags));
+      }
+    }
 
     reportMetered(name, timer, timestamp);
   }
 
   private void reportMetered(String name, Metered meter, long timestamp)
       throws IOException {
-    request.addCounter(new DatadogCounter(
-        maybeExpand(Expansion.COUNT, name),
-        meter.getCount(),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.RATE_1_MINUTE, name),
-        toNumber(convertRate(meter.getOneMinuteRate())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.RATE_5_MINUTE, name),
-        toNumber(convertRate(meter.getFiveMinuteRate())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.RATE_15_MINUTE, name),
-        toNumber(convertRate(meter.getFifteenMinuteRate())),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.RATE_MEAN, name),
-        toNumber(convertRate(meter.getMeanRate())),
-        timestamp,
-        host,
-        tags));
+    if (expansions.contains(Expansion.COUNT)) {
+      request.addCounter(new DatadogCounter(
+          appendExpansionSuffix(name, Expansion.COUNT),
+          meter.getCount(),
+          timestamp,
+          host,
+          tags));
+    }
+
+    double[] values = { meter.getOneMinuteRate(), meter.getFiveMinuteRate(),
+        meter.getFifteenMinuteRate(), meter.getMeanRate() };
+
+    for (int i = 0; i < RATE_EXPANSIONS.length; i++) {
+      if (expansions.contains(RATE_EXPANSIONS[i])) {
+        request.addGauge(new DatadogGauge(
+            appendExpansionSuffix(name, RATE_EXPANSIONS[i]),
+            toNumber(convertRate(values[i])),
+            timestamp,
+            host,
+            tags));
+      }
+    }
   }
 
   private void reportHistogram(String name, Histogram histogram, long timestamp)
       throws IOException {
     final Snapshot snapshot = histogram.getSnapshot();
 
-    request.addCounter(new DatadogCounter(
-        maybeExpand(Expansion.COUNT, name),
-        histogram.getCount(),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.MAX, name),
-        toNumber(snapshot.getMax()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.MEAN, name),
-        toNumber(snapshot.getMean()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.MIN, name),
-        toNumber(snapshot.getMin()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.STD_DEV, name),
-        toNumber(snapshot.getStdDev()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P50, name),
-        toNumber(snapshot.getMedian()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P75, name),
-        toNumber(snapshot.get75thPercentile()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P95, name),
-        toNumber(snapshot.get95thPercentile()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P98, name),
-        toNumber(snapshot.get98thPercentile()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P99, name),
-        toNumber(snapshot.get99thPercentile()),
-        timestamp,
-        host,
-        tags));
-    request.addGauge(new DatadogGauge(
-        maybeExpand(Expansion.P999, name),
-        toNumber(snapshot.get999thPercentile()),
-        timestamp,
-        host,
-        tags));
+    if (expansions.contains(Expansion.COUNT)) {
+      request.addCounter(new DatadogCounter(
+          appendExpansionSuffix(name, Expansion.COUNT),
+          histogram.getCount(),
+          timestamp,
+          host,
+          tags));
+    }
+
+    Number[] values = { snapshot.getMax(), snapshot.getMean(), snapshot.getMin(), snapshot.getStdDev(),
+        snapshot.getMedian(), snapshot.get75thPercentile(), snapshot.get95thPercentile(), snapshot.get98thPercentile(),
+        snapshot.get99thPercentile(), snapshot.get999thPercentile() };
+
+    for (int i = 0; i < STATS_EXPANSIONS.length; i++) {
+      if (expansions.contains(STATS_EXPANSIONS[i])) {
+        request.addGauge(new DatadogGauge(
+            appendExpansionSuffix(name, STATS_EXPANSIONS[i]),
+            toNumber(values[i]),
+            timestamp,
+            host,
+            tags));
+      }
+    }
   }
 
   private void reportCounter(String name, Counter counter, long timestamp)
@@ -287,12 +196,8 @@ public class DatadogReporter extends ScheduledReporter {
     return null;
   }
 
-  private String maybeExpand(Expansion expansion, String name) {
-    if (expansions.contains(expansion)) {
-      return metricNameFormatter.format(name, expansion.toString());
-    } else {
-      return metricNameFormatter.format(name);
-    }
+  private String appendExpansionSuffix(String name, Expansion expansion) {
+    return metricNameFormatter.format(name, expansion.toString());
   }
 
   public static enum Expansion {
@@ -306,7 +211,6 @@ public class DatadogReporter extends ScheduledReporter {
     MAX("max"),
     STD_DEV("stddev"),
     MEDIAN("median"),
-    P50("p50"),
     P75("p75"),
     P95("p95"),
     P98("p98"),

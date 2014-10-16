@@ -90,4 +90,15 @@ public abstract class DatadogSeries<T extends Number> {
     result = 31 * result + tags.hashCode();
     return result;
   }
+
+  @Override
+  public String toString() {
+    return "DatadogSeries{" +
+        "name='" + name + '\'' +
+        ", count=" + count +
+        ", epoch=" + epoch +
+        ", host='" + host + '\'' +
+        ", tags=" + tags +
+        '}';
+  }
 }

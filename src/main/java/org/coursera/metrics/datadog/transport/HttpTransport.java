@@ -1,10 +1,15 @@
 package org.coursera.metrics.datadog.transport;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.fluent.Response;
+import org.apache.http.util.EntityUtils;
 import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
 import org.coursera.metrics.serializer.JsonSerializer;
 import org.coursera.metrics.serializer.Serializer;
 import org.apache.http.entity.ContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -16,6 +21,8 @@ import static org.apache.http.client.fluent.Request.*;
  * @see <a href="http://docs.datadoghq.com/api/">API docs</a>
  */
 public class HttpTransport implements Transport {
+
+  private static final Logger LOG = LoggerFactory.getLogger(HttpTransport.class);
 
   private final static String BASE_URL = "https://app.datadoghq.com/api/v1";
   private final String seriesUrl;
@@ -82,13 +89,37 @@ public class HttpTransport implements Transport {
 
     public void send() throws Exception {
       serializer.endObject();
-      Post(this.transport.seriesUrl)
+      String postBody = serializer.getAsString();
+      if (LOG.isDebugEnabled()) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sending HTTP POST request to ");
+        sb.append(this.transport.seriesUrl);
+        sb.append(", POST body is: \n");
+        sb.append(postBody);
+        LOG.debug(sb.toString());
+      }
+      long start = System.currentTimeMillis();
+      Response response = Post(this.transport.seriesUrl)
           .useExpectContinue()
           .connectTimeout(this.transport.connectTimeout)
           .socketTimeout(this.transport.socketTimeout)
-          .bodyString(serializer.getAsString(), ContentType.APPLICATION_JSON)
-          .execute()
-          .discardContent();
+          .bodyString(postBody, ContentType.APPLICATION_JSON)
+          .execute();
+      long elapsed = System.currentTimeMillis() - start;
+
+      if (LOG.isDebugEnabled()) {
+        HttpResponse httpResponse = response.returnResponse();
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Sent metrics to Datadog: ");
+        sb.append("  Timing: ").append(elapsed).append(" ms\n");
+        sb.append("  Status: ").append(httpResponse.getStatusLine().getStatusCode()).append("\n");
+
+        String content = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+        sb.append("  Content: ").append(content);
+
+        LOG.debug(sb.toString());
+      }
     }
   }
 }

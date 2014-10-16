@@ -8,7 +8,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.coursera</groupId>
     <artifactId>metrics-datadog</artifactId>
-    <version>0.1.9-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>Datadog Metrics Support</name>
     <description>A Datadog reporter backend for yammer metrics</description>
@@ -30,6 +30,11 @@
             <id>danchia</id>
             <name>Daniel Chia</name>
             <email>daniel (at) coursera.org</email>
+        </developer>
+        <developer>
+            <id>nickdella</id>
+            <name>Nick Dellamaggiore</name>
+            <email>nick (at) coursera.org</email>
         </developer>
     </developers>
     <contributors>
@@ -65,6 +70,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>2.3</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -77,6 +83,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.1</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
