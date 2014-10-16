@@ -8,7 +8,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.coursera</groupId>
     <artifactId>metrics-datadog</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
     <name>Datadog Metrics Support</name>
     <description>A Datadog reporter backend for Coda Hale's Metrics</description>
