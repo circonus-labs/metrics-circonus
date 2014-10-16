@@ -119,6 +119,8 @@ public class HttpTransport implements Transport {
         sb.append("  Content: ").append(content);
 
         LOG.debug(sb.toString());
+      } else {
+        response.discardContent();
       }
     }
   }
