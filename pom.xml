@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.sonatype.oss</groupId>
@@ -7,12 +8,17 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.coursera</groupId>
-    <artifactId>metrics-datadog</artifactId>
+    <artifactId>metrics-datadog-parent</artifactId>
     <version>1.0.1</version>
-    <packaging>jar</packaging>
-    <name>Datadog Metrics Support</name>
-    <description>A Datadog reporter backend for Coda Hale's Metrics</description>
+    <packaging>pom</packaging>
+    <name>Datadog Metrics Parent</name>
     <url>https://github.com/coursera/metrics-datadog</url>
+
+    <modules>
+        <module>metrics-datadog</module>
+        <module>dropwizard-metrics-datadog</module>
+    </modules>
+
     <licenses>
         <license>
             <name>The BSD 3-Clause License</name>
@@ -50,6 +56,7 @@
     <properties>
         <metrics.version>3.0.2</metrics.version>
         <jackson.version>2.2.2</jackson.version>
+        <dropwizard.version>0.7.1</dropwizard.version>
     </properties>
     <build>
         <plugins>
@@ -94,66 +101,80 @@
                 </executions>
             </plugin>
             <plugin>
-              <groupId>org.sonatype.plugins</groupId>
-              <artifactId>nexus-staging-maven-plugin</artifactId>
-              <version>1.6.3</version>
-              <extensions>true</extensions>
-              <configuration>
-                <serverId>ossrh</serverId>
-                <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                <autoReleaseAfterClose>true</autoReleaseAfterClose>
-              </configuration>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.3</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
             </plugin>
             <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-gpg-plugin</artifactId>
-              <version>1.5</version>
-              <executions>
-                <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-    <dependencies>
-        <dependency>
-            <groupId>com.codahale.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <version>${metrics.version}</version>
-            <type>jar</type>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>fluent-hc</artifactId>
-            <version>4.3.4</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.indeed</groupId>
-            <artifactId>java-dogstatsd-client</artifactId>
-            <version>2.0.7</version>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.10</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>1.9.5</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.codahale.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>${metrics.version}</version>
+                <type>jar</type>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard</groupId>
+                <artifactId>dropwizard-metrics</artifactId>
+                <version>${dropwizard.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>fluent-hc</artifactId>
+                <version>4.3.4</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+           </dependency>
+            <dependency>
+                <groupId>com.indeed</groupId>
+                <artifactId>java-dogstatsd-client</artifactId>
+                <version>2.0.7</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.10</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.easytesting</groupId>
+                <artifactId>fest-assert-core</artifactId>
+                <version>2.0M10</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-all</artifactId>
+                <version>1.9.5</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
