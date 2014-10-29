@@ -57,19 +57,22 @@ metrics:
   frequency: 1 minute                       # Default is 1 second.
   reporters:
     - type: datadog
-      host: <host>
-      apiKey: <apiKey>
-      connectTimeout: <milliseconds>        # Optional. Default is 5 seconds
-      socketTimeout: <milliseconds>         # Optional. Default is 5 seconds
+      host: <host>                          # Optional with UDP Transport
+      tags:                                 # Optional. Defaults to (empty)
       includes:                             # Optional. Defaults to (all).
       excludes:                             # Optional. Defaults to (none).
+      http:
+        apiKey: <apiKey>
+        connectTimeout: <duration>          # Optional. Default is 5 seconds
+        socketTimeout: <duration>           # Optional. Default is 5 seconds
 ~~~
 
 Once your `dropwizard` application starts, your metrics should start appearing
 in Datadog.
 
-If you want to whitelist only a few metrics, you can use the `includes` key to
-create a set of metrics to include. 
+#### Transport options
+
+HTTP Transport:
 
 ~~~yaml
 metrics:
@@ -77,13 +80,41 @@ metrics:
   reporters:
     - type: datadog
       host: <host>
-      apiKey: <apiKey>
-      connectTimeout: <milliseconds>
-      socketTimeout: <milliseconds>
+      transport:
+        type: http
+        apiKey: <apiKey>
+        connectTimeout: <duration>          # Optional. Default is 5 seconds
+        socketTimeout: <duration>           # Optional. Default is 5 seconds
+~~~
+
+UDP Transport:
+
+~~~yaml
+metrics:
+  frequency: 1 minute                       # Default is 1 second.
+  reporters:
+    - type: datadog
+      transport:
+        type: udp
+        prefix:                             # Optional. Default is (empty)
+        statsdHost: "localhost"             # Optional. Default is "localhost"
+        port: 8125                          # Optional. Default is 8125
+~~~
+
+#### Filtering
+
+If you want to filter only a few metrics, you can use the `includes` or 
+`excludes` key to create a set of metrics to include or exclude respectively.
+
+~~~yaml
+metrics:
+  frequency: 1 minute                       # Default is 1 second.
+  reporters:
+    - type: datadog
+      host: <host>
       includes:
         - jvm.
         - ch.
-        
 ~~~
 
 The check is very simplistic so be as specific as possible. For example, if 
@@ -99,6 +130,12 @@ Metrics datadog reporter is available as an artifact on
 * Artifact: metrics-datadog
 * Version: 1.0.1
 
+Dropwizard datadog reporter is available as an artifact on
+[Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.coursera%22%20AND%20a%3A%22dropwizard-metrics-datadog%22)
+
+* Group: org.coursera
+* Artifact: dropwizard-metrics-datadog
+* Version: 1.0.1
 
 ## Contributing
 
