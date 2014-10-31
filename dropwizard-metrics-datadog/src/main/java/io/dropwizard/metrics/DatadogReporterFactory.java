@@ -5,39 +5,29 @@ import com.codahale.metrics.ScheduledReporter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.coursera.metrics.datadog.DatadogReporter;
-import org.coursera.metrics.datadog.transport.HttpTransport;
+import org.coursera.metrics.datadog.transport.AbstractTransportFactory;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @JsonTypeName("datadog")
 public class DatadogReporterFactory extends BaseReporterFactory {
-  @NotNull
+
   @JsonProperty
   private String host = null;
-
-  @NotNull
-  @JsonProperty
-  private String apiKey = null;
 
   @JsonProperty
   private List<String> tags = null;
 
+  @Valid
+  @NotNull
   @JsonProperty
-  private int connectTimeout = 5000;  // in milliseconds
-
-  @JsonProperty
-  private int socketTimeout = 5000;   // in milliseconds
+  private AbstractTransportFactory transport = null;
 
   public ScheduledReporter build(MetricRegistry registry) {
-    HttpTransport transport = new HttpTransport.Builder()
-        .withApiKey(apiKey)
-        .withConnectTimeout(connectTimeout)
-        .withSocketTimeout(socketTimeout)
-        .build();
-
     return DatadogReporter.forRegistry(registry)
-        .withTransport(transport)
+        .withTransport(transport.build())
         .withHost(host)
         .withTags(tags)
         .filter(getFilter())
