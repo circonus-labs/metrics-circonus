@@ -46,7 +46,7 @@ First, add the `dropwizard-metrics-datadog` dependency in your POM:
     <dependency>
         <groupId>org.coursera</groupId>
         <artifactId>dropwizard-metrics-datadog</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </dependency>
 ~~~
 
@@ -128,14 +128,14 @@ Metrics datadog reporter is available as an artifact on
 
 * Group: org.coursera
 * Artifact: metrics-datadog
-* Version: 1.0.1
+* Version: 1.0.2
 
 Dropwizard datadog reporter is available as an artifact on
 [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.coursera%22%20AND%20a%3A%22dropwizard-metrics-datadog%22)
 
 * Group: org.coursera
 * Artifact: dropwizard-metrics-datadog
-* Version: 1.0.1
+* Version: 1.0.2
 
 ## Contributing
 
