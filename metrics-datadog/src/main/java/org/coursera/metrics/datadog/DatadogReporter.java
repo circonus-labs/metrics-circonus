@@ -42,6 +42,7 @@ public class DatadogReporter extends ScheduledReporter {
   private final MetricNameFormatter metricNameFormatter;
   private final List<String> tags;
   private Transport.Request request;
+  private final String prefix;
 
   private DatadogReporter(MetricRegistry metricRegistry,
                           Transport transport,
@@ -52,7 +53,8 @@ public class DatadogReporter extends ScheduledReporter {
                           TimeUnit rateUnit,
                           TimeUnit durationUnit,
                           MetricNameFormatter metricNameFormatter,
-                          List<String> tags) {
+                          List<String> tags,
+                          String prefix) {
     super(metricRegistry, "datadog-reporter", filter, rateUnit, durationUnit);
     this.clock = clock;
     this.host = host;
@@ -60,6 +62,7 @@ public class DatadogReporter extends ScheduledReporter {
     this.metricNameFormatter = metricNameFormatter;
     this.tags = tags;
     this.transport = transport;
+    this.prefix = prefix;
   }
 
   @Override
@@ -74,23 +77,23 @@ public class DatadogReporter extends ScheduledReporter {
       request = transport.prepare();
 
       for (Map.Entry<String, Gauge> entry : gauges.entrySet()) {
-        reportGauge(entry.getKey(), entry.getValue(), timestamp);
+        reportGauge(prefix(entry.getKey()), entry.getValue(), timestamp);
       }
 
       for (Map.Entry<String, Counter> entry : counters.entrySet()) {
-        reportCounter(entry.getKey(), entry.getValue(), timestamp);
+        reportCounter(prefix(entry.getKey()), entry.getValue(), timestamp);
       }
 
       for (Map.Entry<String, Histogram> entry : histograms.entrySet()) {
-        reportHistogram(entry.getKey(), entry.getValue(), timestamp);
+        reportHistogram(prefix(entry.getKey()), entry.getValue(), timestamp);
       }
 
       for (Map.Entry<String, Meter> entry : meters.entrySet()) {
-        reportMetered(entry.getKey(), entry.getValue(), timestamp);
+        reportMetered(prefix(entry.getKey()), entry.getValue(), timestamp);
       }
 
       for (Map.Entry<String, Timer> entry : timers.entrySet()) {
-        reportTimer(entry.getKey(), entry.getValue(), timestamp);
+        reportTimer(prefix(entry.getKey()), entry.getValue(), timestamp);
       }
 
       request.send();
@@ -200,6 +203,14 @@ public class DatadogReporter extends ScheduledReporter {
     return metricNameFormatter.format(name, expansion.toString());
   }
 
+  private String prefix(String name) {
+    if(prefix == null) {
+      return name;
+    } else {
+      return String.format("%s.%s", prefix, name);
+    }
+  }
+
   public static enum Expansion {
     COUNT("count"),
     RATE_MEAN("meanRate"),
@@ -246,6 +257,7 @@ public class DatadogReporter extends ScheduledReporter {
     private MetricNameFormatter metricNameFormatter;
     private List<String> tags;
     private Transport transport;
+    private String prefix;
 
     public Builder(MetricRegistry registry) {
       this.registry = registry;
@@ -256,6 +268,7 @@ public class DatadogReporter extends ScheduledReporter {
       this.filter = MetricFilter.ALL;
       this.metricNameFormatter = new DefaultMetricNameFormatter();
       this.tags = new ArrayList<String>();
+      this.prefix = null;
     }
 
     public Builder withHost(String host) {
@@ -285,6 +298,16 @@ public class DatadogReporter extends ScheduledReporter {
      */
     public Builder withTags(List<String> tags) {
       this.tags = tags;
+      return this;
+    }
+
+    /**
+     * Prefix all metric names with the given string.
+     *
+     * @param prefix The prefix for all metric names.
+     */
+    public Builder withPrefix(String prefix) {
+      this.prefix = prefix;
       return this;
     }
 
@@ -335,7 +358,8 @@ public class DatadogReporter extends ScheduledReporter {
           this.rateUnit,
           this.durationUnit,
           this.metricNameFormatter,
-          this.tags);
+          this.tags,
+          this.prefix);
     }
   }
 }
