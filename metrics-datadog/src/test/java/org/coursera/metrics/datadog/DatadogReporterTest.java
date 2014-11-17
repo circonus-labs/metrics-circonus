@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class DatadogReporterTest {
   private static final String HOST = "hostname";
+  private static final String PREFIX = "testprefix";
   private final long timestamp = 1000198;
   private final Clock clock = mock(Clock.class);
   private final Transport transport = mock(Transport.class);
@@ -56,7 +57,6 @@ public class DatadogReporterTest {
         .convertRatesTo(TimeUnit.SECONDS)
         .convertDurationsTo(TimeUnit.MILLISECONDS)
         .withTransport(transport)
-        .withPrefix("test")
         .build();
   }
 
@@ -70,7 +70,7 @@ public class DatadogReporterTest {
                     this.<Meter>map(),
                     this.<Timer>map());
 
-    gaugeTestHelper("test.gauge", (byte) 1, timestamp, HOST, tags);
+    gaugeTestHelper("gauge", (byte) 1, timestamp, HOST, tags);
   }
 
   @Test
@@ -81,7 +81,7 @@ public class DatadogReporterTest {
                     this.<Meter>map(),
                     this.<Timer>map());
 
-    gaugeTestHelper("test.gauge", (short) 1, timestamp, HOST, tags);
+    gaugeTestHelper("gauge", (short) 1, timestamp, HOST, tags);
   }
 
   @Test
@@ -92,7 +92,7 @@ public class DatadogReporterTest {
                     this.<Meter>map(),
                     this.<Timer>map());
 
-    gaugeTestHelper("test.gauge", 1, timestamp, HOST, tags);
+    gaugeTestHelper("gauge", 1, timestamp, HOST, tags);
   }
 
   @Test
@@ -103,7 +103,7 @@ public class DatadogReporterTest {
                     this.<Meter>map(),
                     this.<Timer>map());
 
-    gaugeTestHelper("test.gauge", 1L, timestamp, HOST, tags);
+    gaugeTestHelper("gauge", 1L, timestamp, HOST, tags);
   }
 
   @Test
@@ -114,7 +114,7 @@ public class DatadogReporterTest {
                     this.<Meter>map(),
                     this.<Timer>map());
 
-    gaugeTestHelper("test.gauge", 1.1f, timestamp, HOST, tags);
+    gaugeTestHelper("gauge", 1.1f, timestamp, HOST, tags);
   }
 
   @Test
@@ -125,7 +125,7 @@ public class DatadogReporterTest {
                     this.<Meter>map(),
                     this.<Timer>map());
 
-    gaugeTestHelper("test.gauge", 1.1, timestamp, HOST, tags);
+    gaugeTestHelper("gauge", 1.1, timestamp, HOST, tags);
   }
 
   @Test
@@ -141,7 +141,7 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(transport).prepare();
-    inOrder.verify(request).addCounter(new DatadogCounter("test.counter", 100L, timestamp, HOST, tags));
+    inOrder.verify(request).addCounter(new DatadogCounter("counter", 100L, timestamp, HOST, tags));
     inOrder.verify(request).send();
 
     verify(transport).prepare();
@@ -176,17 +176,17 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(transport).prepare();
-    inOrder.verify(request).addCounter(new DatadogCounter("test.histogram.count", 1L, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.max", 2L, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.mean", 3.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.min", 4L, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.stddev", 5.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.median", 6.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.p75", 7.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.p95", 8.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.p98", 9.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.p99", 10.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.histogram.p999", 11.0, timestamp, HOST, tags));
+    inOrder.verify(request).addCounter(new DatadogCounter("histogram.count", 1L, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.max", 2L, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.mean", 3.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.min", 4L, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.stddev", 5.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.median", 6.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.p75", 7.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.p95", 8.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.p98", 9.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.p99", 10.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("histogram.p999", 11.0, timestamp, HOST, tags));
     inOrder.verify(request).send();
 
     verify(transport).prepare();
@@ -211,11 +211,11 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(transport).prepare();
-    inOrder.verify(request).addCounter(new DatadogCounter("test.meter.count", 1L, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.meter.1MinuteRate", 2.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.meter.5MinuteRate", 3.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.meter.15MinuteRate", 4.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.meter.meanRate", 5.0, timestamp, HOST, tags));
+    inOrder.verify(request).addCounter(new DatadogCounter("meter.count", 1L, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("meter.1MinuteRate", 2.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("meter.5MinuteRate", 3.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("meter.15MinuteRate", 4.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("meter.meanRate", 5.0, timestamp, HOST, tags));
     inOrder.verify(request).send();
 
     verify(transport).prepare();
@@ -263,21 +263,53 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(transport).prepare();
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.max", 100.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.mean", 200.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.min", 300.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.stddev", 400.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.median", 500.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.p75", 600.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.p95", 700.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.p98", 800.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.p99", 900.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.p999", 1000.0, timestamp, HOST, tags));
-    inOrder.verify(request).addCounter(new DatadogCounter("test.timer.count", 1L, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.1MinuteRate", 3.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.5MinuteRate", 4.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.15MinuteRate", 5.0, timestamp, HOST, tags));
-    inOrder.verify(request).addGauge(new DatadogGauge("test.timer.meanRate", 2.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.max", 100.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.mean", 200.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.min", 300.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.stddev", 400.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.median", 500.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.p75", 600.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.p95", 700.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.p98", 800.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.p99", 900.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.p999", 1000.0, timestamp, HOST, tags));
+    inOrder.verify(request).addCounter(new DatadogCounter("timer.count", 1L, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.1MinuteRate", 3.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.5MinuteRate", 4.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.15MinuteRate", 5.0, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("timer.meanRate", 2.0, timestamp, HOST, tags));
+    inOrder.verify(request).send();
+
+    verify(transport).prepare();
+    verify(request).send();
+    verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsWithPrefix() throws Exception {
+
+    Counter counter = metricsRegistry.counter("my.metric.counter");
+    counter.inc(123);
+
+    DatadogReporter reporterWithPrefix =
+        DatadogReporter
+            .forRegistry(metricsRegistry)
+            .withHost(HOST)
+            .withClock(clock)
+            .withTags(tags)
+            .filter(new NameMetricFilter("my.metric"))
+            .withTransport(transport)
+            .withPrefix(PREFIX)
+            .build();
+    reporterWithPrefix.report();
+
+    final InOrder inOrder = inOrder(transport, request);
+    inOrder.verify(transport).prepare();
+    inOrder.verify(request).addCounter(new DatadogCounter("testprefix.my.metric.counter",
+        123L,
+        timestamp,
+        HOST,
+        tags));
     inOrder.verify(request).send();
 
     verify(transport).prepare();
@@ -337,31 +369,31 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(request)
-        .addCounter(new DatadogCounter("test.java.lang.String.meter.count[with,tags]",
+        .addCounter(new DatadogCounter("java.lang.String.meter.count[with,tags]",
             0L,
             timestamp,
             HOST,
             tags));
     inOrder.verify(request)
-        .addGauge(new DatadogGauge("test.java.lang.String.meter.1MinuteRate[with,tags]",
+        .addGauge(new DatadogGauge("java.lang.String.meter.1MinuteRate[with,tags]",
             0.0,
             timestamp,
             HOST,
             tags));
     inOrder.verify(request)
-        .addGauge(new DatadogGauge("test.java.lang.String.meter.5MinuteRate[with,tags]",
+        .addGauge(new DatadogGauge("java.lang.String.meter.5MinuteRate[with,tags]",
             0.0,
             timestamp,
             HOST,
             tags));
     inOrder.verify(request)
-        .addGauge(new DatadogGauge("test.java.lang.String.meter.15MinuteRate[with,tags]",
+        .addGauge(new DatadogGauge("java.lang.String.meter.15MinuteRate[with,tags]",
             0.0,
             timestamp,
             HOST,
             tags));
     inOrder.verify(request)
-        .addGauge(new DatadogGauge("test.java.lang.String.meter.meanRate[with,tags]",
+        .addGauge(new DatadogGauge("java.lang.String.meter.meanRate[with,tags]",
             0.0,
             timestamp,
             HOST,

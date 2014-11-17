@@ -41,8 +41,8 @@ public class DatadogReporter extends ScheduledReporter {
   private final EnumSet<Expansion> expansions;
   private final MetricNameFormatter metricNameFormatter;
   private final List<String> tags;
-  private Transport.Request request;
   private final String prefix;
+  private Transport.Request request;
 
   private DatadogReporter(MetricRegistry metricRegistry,
                           Transport transport,
@@ -204,7 +204,7 @@ public class DatadogReporter extends ScheduledReporter {
   }
 
   private String prefix(String name) {
-    if(prefix == null) {
+    if (prefix == null) {
       return name;
     } else {
       return String.format("%s.%s", prefix, name);
