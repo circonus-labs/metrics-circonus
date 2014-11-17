@@ -39,6 +39,7 @@ public class DatadogReporterTest {
       mock(Transport.Request.class);
   private MetricRegistry metricsRegistry;
   private DatadogReporter reporter;
+  private DatadogReporter reporterWithPrefix;
   private List<String> tags;
 
   @Before
@@ -58,6 +59,18 @@ public class DatadogReporterTest {
         .convertDurationsTo(TimeUnit.MILLISECONDS)
         .withTransport(transport)
         .build();
+
+    reporterWithPrefix = DatadogReporter
+        .forRegistry(metricsRegistry)
+        .withHost(HOST)
+        .withPrefix(PREFIX)
+        .withClock(clock)
+        .withTags(tags)
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.MILLISECONDS)
+        .withTransport(transport)
+        .build();
+
   }
 
   @Test
@@ -288,33 +301,16 @@ public class DatadogReporterTest {
   @Test
   public void reportsWithPrefix() throws Exception {
 
-    Counter counter = metricsRegistry.counter("my.metric.counter");
-    counter.inc(123);
+    final Counter counter = mock(Counter.class);
+    when(counter.getCount()).thenReturn(100L);
 
-    DatadogReporter reporterWithPrefix =
-        DatadogReporter
-            .forRegistry(metricsRegistry)
-            .withHost(HOST)
-            .withClock(clock)
-            .withTags(tags)
-            .filter(new NameMetricFilter("my.metric"))
-            .withTransport(transport)
-            .withPrefix(PREFIX)
-            .build();
-    reporterWithPrefix.report();
+    reporterWithPrefix.report(this.<Gauge>map(),
+                this.<Counter>map("counter", counter),
+                this.<Histogram>map(),
+                this.<Meter>map(),
+                this.<Timer>map());
 
-    final InOrder inOrder = inOrder(transport, request);
-    inOrder.verify(transport).prepare();
-    inOrder.verify(request).addCounter(new DatadogCounter("testprefix.my.metric.counter",
-        123L,
-        timestamp,
-        HOST,
-        tags));
-    inOrder.verify(request).send();
-
-    verify(transport).prepare();
-    verify(request).send();
-    verifyNoMoreInteractions(transport, request);
+    verify(request).addCounter(new DatadogCounter("testprefix.counter", 100L, timestamp, HOST, tags));
   }
 
   @Test
