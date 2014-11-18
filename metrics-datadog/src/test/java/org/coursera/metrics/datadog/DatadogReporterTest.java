@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class DatadogReporterTest {
   private static final String HOST = "hostname";
+  private static final String PREFIX = "testprefix";
   private final long timestamp = 1000198;
   private final Clock clock = mock(Clock.class);
   private final Transport transport = mock(Transport.class);
@@ -38,6 +39,7 @@ public class DatadogReporterTest {
       mock(Transport.Request.class);
   private MetricRegistry metricsRegistry;
   private DatadogReporter reporter;
+  private DatadogReporter reporterWithPrefix;
   private List<String> tags;
 
   @Before
@@ -57,6 +59,18 @@ public class DatadogReporterTest {
         .convertDurationsTo(TimeUnit.MILLISECONDS)
         .withTransport(transport)
         .build();
+
+    reporterWithPrefix = DatadogReporter
+        .forRegistry(metricsRegistry)
+        .withHost(HOST)
+        .withPrefix(PREFIX)
+        .withClock(clock)
+        .withTags(tags)
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.MILLISECONDS)
+        .withTransport(transport)
+        .build();
+
   }
 
   @Test
@@ -282,6 +296,22 @@ public class DatadogReporterTest {
     verify(transport).prepare();
     verify(request).send();
     verifyNoMoreInteractions(transport, request);
+  }
+
+  @Test
+  public void reportsWithPrefix() throws Exception {
+
+    final Counter counter = mock(Counter.class);
+    when(counter.getCount()).thenReturn(100L);
+
+    reporterWithPrefix.report(this.<Gauge>map(),
+        this.<Counter>map("counter", counter),
+        this.<Histogram>map(),
+        this.<Meter>map(),
+        this.<Timer>map());
+
+    verify(request).addCounter(new DatadogCounter("testprefix.counter", 100L, timestamp, HOST, tags));
+    verify(request, never()).addCounter(new DatadogCounter("counter", 100L, timestamp, HOST, tags));
   }
 
   @Test
