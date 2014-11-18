@@ -305,12 +305,13 @@ public class DatadogReporterTest {
     when(counter.getCount()).thenReturn(100L);
 
     reporterWithPrefix.report(this.<Gauge>map(),
-                this.<Counter>map("counter", counter),
-                this.<Histogram>map(),
-                this.<Meter>map(),
-                this.<Timer>map());
+        this.<Counter>map("counter", counter),
+        this.<Histogram>map(),
+        this.<Meter>map(),
+        this.<Timer>map());
 
     verify(request).addCounter(new DatadogCounter("testprefix.counter", 100L, timestamp, HOST, tags));
+    verify(request, never()).addCounter(new DatadogCounter("counter", 100L, timestamp, HOST, tags));
   }
 
   @Test
