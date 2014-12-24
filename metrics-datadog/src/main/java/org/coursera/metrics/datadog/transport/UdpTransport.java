@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Uses dogstatsd UDP protocol to push metrics to datadog. Note that datadog doesn't support
@@ -22,6 +24,7 @@ public class UdpTransport implements Transport {
 
   private static final Logger LOG = LoggerFactory.getLogger(UdpTransport.class);
   private final StatsDClient statsd;
+  private final HashMap lastSeenCounters = new HashMap<String,Integer>();
 
   private UdpTransport(String prefix, String statsdHost, int port, String[] globalTags) {
     statsd = new NonBlockingStatsDClient(
@@ -62,14 +65,16 @@ public class UdpTransport implements Transport {
   }
 
   public Request prepare() throws IOException {
-    return new DogstatsdRequest(statsd);
+    return new DogstatsdRequest(statsd, lastSeenCounters);
   }
 
   public static class DogstatsdRequest implements Transport.Request {
     private final StatsDClient statsdClient;
+    private final Map<String,Integer> lastSeenCounters;
 
-    public DogstatsdRequest(StatsDClient statsdClient) {
+    public DogstatsdRequest(StatsDClient statsdClient, Map<String,Integer> lastSeenCounters) {
       this.statsdClient = statsdClient;
+      this.lastSeenCounters = lastSeenCounters;
     }
 
     /**
@@ -95,7 +100,20 @@ public class UdpTransport implements Transport {
       }
       int value = counter.getPoints().get(0).get(1).intValue();
       String[] tags = counter.getTags().toArray(new String[counter.getTags().size()]);
-      statsdClient.count(counter.getMetric(), value, tags);
+
+      String metric = counter.getMetric();
+      int finalValue = value;
+      if (lastSeenCounters.containsKey(metric)) {
+        // If we've seen this counter before then calculate the difference
+        // by subtracting the new value from the old. StatsD expects a relative
+        // counter, not an absolute!
+        finalValue = value - lastSeenCounters.get(metric);
+      }
+      // Store the last value we saw so that the next addCounter call can make
+      // the proper relative value
+      lastSeenCounters.put(metric, value);
+
+      statsdClient.count(metric, finalValue, tags);
     }
 
     /**
