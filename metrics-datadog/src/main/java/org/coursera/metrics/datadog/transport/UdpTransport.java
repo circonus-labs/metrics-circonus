@@ -24,7 +24,7 @@ public class UdpTransport implements Transport {
 
   private static final Logger LOG = LoggerFactory.getLogger(UdpTransport.class);
   private final StatsDClient statsd;
-  private final HashMap lastSeenCounters = new HashMap<String,Integer>();
+  private final Map lastSeenCounters = new HashMap<String, Integer>();
 
   private UdpTransport(String prefix, String statsdHost, int port, String[] globalTags) {
     statsd = new NonBlockingStatsDClient(
@@ -70,9 +70,9 @@ public class UdpTransport implements Transport {
 
   public static class DogstatsdRequest implements Transport.Request {
     private final StatsDClient statsdClient;
-    private final Map<String,Integer> lastSeenCounters;
+    private final Map<String, Integer> lastSeenCounters;
 
-    public DogstatsdRequest(StatsDClient statsdClient, Map<String,Integer> lastSeenCounters) {
+    public DogstatsdRequest(StatsDClient statsdClient, Map<String, Integer> lastSeenCounters) {
       this.statsdClient = statsdClient;
       this.lastSeenCounters = lastSeenCounters;
     }
