@@ -24,7 +24,7 @@ public class UdpTransport implements Transport {
 
   private static final Logger LOG = LoggerFactory.getLogger(UdpTransport.class);
   private final StatsDClient statsd;
-  private final Map lastSeenCounters = new HashMap<String, Integer>();
+  private final Map lastSeenCounters = new HashMap<String, Long>();
 
   private UdpTransport(String prefix, String statsdHost, int port, String[] globalTags) {
     statsd = new NonBlockingStatsDClient(
@@ -70,9 +70,9 @@ public class UdpTransport implements Transport {
 
   public static class DogstatsdRequest implements Transport.Request {
     private final StatsDClient statsdClient;
-    private final Map<String, Integer> lastSeenCounters;
+    private final Map<String, Long> lastSeenCounters;
 
-    public DogstatsdRequest(StatsDClient statsdClient, Map<String, Integer> lastSeenCounters) {
+    public DogstatsdRequest(StatsDClient statsdClient, Map<String, Long> lastSeenCounters) {
       this.statsdClient = statsdClient;
       this.lastSeenCounters = lastSeenCounters;
     }
@@ -98,11 +98,11 @@ public class UdpTransport implements Transport {
         LOG.debug("Counter " + counter.getMetric() + " has more than one data point, " +
             "will pick the first point only");
       }
-      int value = counter.getPoints().get(0).get(1).intValue();
+      long value = counter.getPoints().get(0).get(1).longValue();
       String[] tags = counter.getTags().toArray(new String[counter.getTags().size()]);
 
       String metric = counter.getMetric();
-      int finalValue = value;
+      long finalValue = value;
       if (lastSeenCounters.containsKey(metric)) {
         // If we've seen this counter before then calculate the difference
         // by subtracting the new value from the old. StatsD expects a relative
