@@ -75,9 +75,14 @@ public class DatadogReporter extends ScheduledReporter {
                      SortedMap<String, Meter> meters,
                      SortedMap<String, Timer> timers) {
     final long timestamp = clock.getTime() / 1000;
-    List<String> newTags = TagsMerger.mergeTags(tags, tagsCallback.getTags());
-    tags.clear();
-    tags.addAll(newTags);
+    if (tagsCallback != null) {
+      List<String> dynamicTags = tagsCallback.getTags();
+      if (dynamicTags != null && ! dynamicTags.isEmpty()) {
+        List<String> newTags = TagsMerger.mergeTags(tags, tagsCallback.getTags());
+        tags.clear();
+        tags.addAll(newTags);
+      }
+    }
 
     try {
       request = transport.prepare();
