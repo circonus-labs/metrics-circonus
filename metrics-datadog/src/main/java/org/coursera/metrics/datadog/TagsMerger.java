@@ -11,6 +11,13 @@ import java.util.Map;
 public class TagsMerger {
   private static final Logger LOG = LoggerFactory.getLogger(TagsMerger.class);
 
+  /**
+   *
+   * @param tags1 list of tags, each tag should be in the format of "key:value"
+   * @param tags2 list of tags, each tag should be in the format of "key:value"
+   * @return merged tags list. If there is duplicated key, tags in tags2 will overwrite tags
+   * in tags1, and tags in the back of the list will overwrite tags in the front of the list.
+   */
   public static List<String> mergeTags(List<String> tags1, List<String> tags2) {
     List<String> newTags = new ArrayList<String>();
     newTags.addAll(tags1);
