@@ -18,11 +18,7 @@ import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class DatadogReporter extends ScheduledReporter {
@@ -40,8 +36,9 @@ public class DatadogReporter extends ScheduledReporter {
   private final String host;
   private final EnumSet<Expansion> expansions;
   private final MetricNameFormatter metricNameFormatter;
-  private List<String> tags;
+  private final List<String> tags;
   private final String prefix;
+  private final DynamicTagsCallback tagsCallback;
   private Transport.Request request;
 
   private DatadogReporter(MetricRegistry metricRegistry,
@@ -54,7 +51,8 @@ public class DatadogReporter extends ScheduledReporter {
                           TimeUnit durationUnit,
                           MetricNameFormatter metricNameFormatter,
                           List<String> tags,
-                          String prefix) {
+                          String prefix,
+                          DynamicTagsCallback tagsCallback) {
     super(metricRegistry, "datadog-reporter", filter, rateUnit, durationUnit);
     this.clock = clock;
     this.host = host;
@@ -63,6 +61,7 @@ public class DatadogReporter extends ScheduledReporter {
     this.tags = new ArrayList<String>(tags);
     this.transport = transport;
     this.prefix = prefix;
+    this.tagsCallback = tagsCallback;
   }
 
   @Override
@@ -72,6 +71,9 @@ public class DatadogReporter extends ScheduledReporter {
                      SortedMap<String, Meter> meters,
                      SortedMap<String, Timer> timers) {
     final long timestamp = clock.getTime() / 1000;
+    List<String> newTags = TagsMerger.mergeTags(tags, tagsCallback.getTags());
+    tags.clear();
+    tags.addAll(newTags);
 
     try {
       request = transport.prepare();
@@ -211,10 +213,6 @@ public class DatadogReporter extends ScheduledReporter {
     }
   }
 
-  public void setTags(List<String> tags) {
-      this.tags = new ArrayList<String>(tags);
-  }
-
   public static enum Expansion {
     COUNT("count"),
     RATE_MEAN("meanRate"),
@@ -262,6 +260,7 @@ public class DatadogReporter extends ScheduledReporter {
     private List<String> tags;
     private Transport transport;
     private String prefix;
+    private DynamicTagsCallback tagsCallback;
 
     public Builder(MetricRegistry registry) {
       this.registry = registry;
@@ -272,7 +271,6 @@ public class DatadogReporter extends ScheduledReporter {
       this.filter = MetricFilter.ALL;
       this.metricNameFormatter = new DefaultMetricNameFormatter();
       this.tags = new ArrayList<String>();
-      this.prefix = null;
     }
 
     public Builder withHost(String host) {
@@ -287,6 +285,11 @@ public class DatadogReporter extends ScheduledReporter {
 
     public Builder withExpansions(EnumSet<Expansion> expansions) {
       this.expansions = expansions;
+      return this;
+    }
+
+    public Builder withDynamicTagCallback(DynamicTagsCallback tagsCallback) {
+      this.tagsCallback = tagsCallback;
       return this;
     }
 
@@ -363,7 +366,8 @@ public class DatadogReporter extends ScheduledReporter {
           this.durationUnit,
           this.metricNameFormatter,
           this.tags,
-          this.prefix);
+          this.prefix,
+          this.tagsCallback);
     }
   }
 }
