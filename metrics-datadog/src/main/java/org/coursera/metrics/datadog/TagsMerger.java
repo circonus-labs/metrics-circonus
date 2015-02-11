@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TagsMerger {
+class TagsMerger {
   private static final Logger LOG = LoggerFactory.getLogger(TagsMerger.class);
 
   /**
@@ -18,7 +18,7 @@ public class TagsMerger {
    * @return merged tags list. If there is duplicated key, tags in tags2 will overwrite tags
    * in tags1, and tags in the back of the list will overwrite tags in the front of the list.
    */
-  public static List<String> mergeTags(List<String> tags1, List<String> tags2) {
+  static List<String> mergeTags(List<String> tags1, List<String> tags2) {
     List<String> newTags = new ArrayList<String>();
     newTags.addAll(tags1);
     newTags.addAll(tags2);

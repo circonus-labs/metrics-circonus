@@ -62,7 +62,7 @@ public class DatadogReporter extends ScheduledReporter {
     this.host = host;
     this.expansions = expansions;
     this.metricNameFormatter = metricNameFormatter;
-    this.tags = new ArrayList<String>(tags);
+    this.tags = (tags == null) ? new ArrayList<String>() : tags;
     this.transport = transport;
     this.prefix = prefix;
     this.tagsCallback = tagsCallback;
@@ -75,6 +75,7 @@ public class DatadogReporter extends ScheduledReporter {
                      SortedMap<String, Meter> meters,
                      SortedMap<String, Timer> timers) {
     final long timestamp = clock.getTime() / 1000;
+
     if (tagsCallback != null) {
       List<String> dynamicTags = tagsCallback.getTags();
       if (dynamicTags != null && ! dynamicTags.isEmpty()) {
