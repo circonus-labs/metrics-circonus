@@ -40,7 +40,7 @@ public class DatadogReporter extends ScheduledReporter {
   private final String host;
   private final EnumSet<Expansion> expansions;
   private final MetricNameFormatter metricNameFormatter;
-  private final List<String> tags;
+  private List<String> tags;
   private final String prefix;
   private Transport.Request request;
 
@@ -60,7 +60,7 @@ public class DatadogReporter extends ScheduledReporter {
     this.host = host;
     this.expansions = expansions;
     this.metricNameFormatter = metricNameFormatter;
-    this.tags = tags;
+    this.tags = new ArrayList<String>(tags);
     this.transport = transport;
     this.prefix = prefix;
   }
@@ -209,6 +209,10 @@ public class DatadogReporter extends ScheduledReporter {
     } else {
       return String.format("%s.%s", prefix, name);
     }
+  }
+
+  public void setTags(List<String> tags) {
+      this.tags = new ArrayList<String>(tags);
   }
 
   public static enum Expansion {
