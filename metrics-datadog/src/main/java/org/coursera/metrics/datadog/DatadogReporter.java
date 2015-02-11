@@ -11,14 +11,18 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.coursera.metrics.datadog.transport.Transport;
 import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
+import org.coursera.metrics.datadog.transport.Transport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
 public class DatadogReporter extends ScheduledReporter {
