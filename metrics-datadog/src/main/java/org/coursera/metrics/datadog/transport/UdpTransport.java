@@ -107,7 +107,7 @@ public class UdpTransport implements Transport {
         // If we've seen this counter before then calculate the difference
         // by subtracting the new value from the old. StatsD expects a relative
         // counter, not an absolute!
-        finalValue = value - lastSeenCounters.get(metric);
+        finalValue = Math.max(0, value - lastSeenCounters.get(metric));
       }
       // Store the last value we saw so that the next addCounter call can make
       // the proper relative value
