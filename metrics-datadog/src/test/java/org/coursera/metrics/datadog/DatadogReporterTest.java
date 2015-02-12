@@ -328,7 +328,7 @@ public class DatadogReporterTest {
 
   @Test
   public void reportsWithCallback() throws Exception {
-    List<String> dynamicTags = new ArrayList<>();
+    List<String> dynamicTags = new ArrayList<String>();
     dynamicTags.add("status:active");
     dynamicTags.add("speed:29");
 
