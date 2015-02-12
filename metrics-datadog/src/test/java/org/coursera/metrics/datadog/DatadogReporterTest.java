@@ -524,6 +524,6 @@ public class DatadogReporterTest {
 
     verify(transport).prepare();
     verify(request).send();
-    //verifyNoMoreInteractions(transport, request);
+    verifyNoMoreInteractions(transport, request);
   }
 }
