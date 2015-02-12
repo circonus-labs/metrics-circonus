@@ -76,12 +76,11 @@ public class DatadogReporter extends ScheduledReporter {
                      SortedMap<String, Timer> timers) {
     final long timestamp = clock.getTime() / 1000;
 
+    List<String> newTags = tags;
     if (tagsCallback != null) {
       List<String> dynamicTags = tagsCallback.getTags();
       if (dynamicTags != null && ! dynamicTags.isEmpty()) {
-        List<String> newTags = TagsMerger.mergeTags(tags, tagsCallback.getTags());
-        tags.clear();
-        tags.addAll(newTags);
+        newTags = TagsMerger.mergeTags(tags, tagsCallback.getTags());
       }
     }
 
@@ -89,23 +88,23 @@ public class DatadogReporter extends ScheduledReporter {
       request = transport.prepare();
 
       for (Map.Entry<String, Gauge> entry : gauges.entrySet()) {
-        reportGauge(prefix(entry.getKey()), entry.getValue(), timestamp);
+        reportGauge(prefix(entry.getKey()), entry.getValue(), timestamp, newTags);
       }
 
       for (Map.Entry<String, Counter> entry : counters.entrySet()) {
-        reportCounter(prefix(entry.getKey()), entry.getValue(), timestamp);
+        reportCounter(prefix(entry.getKey()), entry.getValue(), timestamp, newTags);
       }
 
       for (Map.Entry<String, Histogram> entry : histograms.entrySet()) {
-        reportHistogram(prefix(entry.getKey()), entry.getValue(), timestamp);
+        reportHistogram(prefix(entry.getKey()), entry.getValue(), timestamp, newTags);
       }
 
       for (Map.Entry<String, Meter> entry : meters.entrySet()) {
-        reportMetered(prefix(entry.getKey()), entry.getValue(), timestamp);
+        reportMetered(prefix(entry.getKey()), entry.getValue(), timestamp, newTags);
       }
 
       for (Map.Entry<String, Timer> entry : timers.entrySet()) {
-        reportTimer(prefix(entry.getKey()), entry.getValue(), timestamp);
+        reportTimer(prefix(entry.getKey()), entry.getValue(), timestamp, newTags);
       }
 
       request.send();
@@ -114,7 +113,7 @@ public class DatadogReporter extends ScheduledReporter {
     }
   }
 
-  private void reportTimer(String name, Timer timer, long timestamp)
+  private void reportTimer(String name, Timer timer, long timestamp, List<String> tags)
       throws IOException {
     final Snapshot snapshot = timer.getSnapshot();
 
@@ -133,10 +132,10 @@ public class DatadogReporter extends ScheduledReporter {
       }
     }
 
-    reportMetered(name, timer, timestamp);
+    reportMetered(name, timer, timestamp, tags);
   }
 
-  private void reportMetered(String name, Metered meter, long timestamp)
+  private void reportMetered(String name, Metered meter, long timestamp, List<String> tags)
       throws IOException {
     if (expansions.contains(Expansion.COUNT)) {
       request.addCounter(new DatadogCounter(
@@ -162,7 +161,7 @@ public class DatadogReporter extends ScheduledReporter {
     }
   }
 
-  private void reportHistogram(String name, Histogram histogram, long timestamp)
+  private void reportHistogram(String name, Histogram histogram, long timestamp, List<String> tags)
       throws IOException {
     final Snapshot snapshot = histogram.getSnapshot();
 
@@ -191,12 +190,12 @@ public class DatadogReporter extends ScheduledReporter {
     }
   }
 
-  private void reportCounter(String name, Counter counter, long timestamp)
+  private void reportCounter(String name, Counter counter, long timestamp, List<String> tags)
       throws IOException {
     request.addCounter(new DatadogCounter(name, counter.getCount(), timestamp, host, tags));
   }
 
-  private void reportGauge(String name, Gauge gauge, long timestamp)
+  private void reportGauge(String name, Gauge gauge, long timestamp, List<String> tags)
       throws IOException {
     final Number value = toNumber(gauge.getValue());
     if (value != null) {

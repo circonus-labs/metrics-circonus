@@ -19,6 +19,12 @@ class TagsMerger {
    * in tags1, and tags in the back of the list will overwrite tags in the front of the list.
    */
   static List<String> mergeTags(List<String> tags1, List<String> tags2) {
+    if (tags1 == null || tags1.isEmpty()) {
+      return tags2;
+    } else if (tags2 == null || tags2.isEmpty()) {
+      return tags1;
+    }
+
     List<String> newTags = new ArrayList<String>();
     newTags.addAll(tags1);
     newTags.addAll(tags2);
