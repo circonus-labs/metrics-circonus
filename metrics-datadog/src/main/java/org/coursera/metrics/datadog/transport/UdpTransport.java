@@ -100,18 +100,26 @@ public class UdpTransport implements Transport {
       }
       long value = counter.getPoints().get(0).get(1).longValue();
       String[] tags = counter.getTags().toArray(new String[counter.getTags().size()]);
+      StringBuilder sb = new StringBuilder("");
+      for (int i=tags.length - 1; i>=0; i--) {
+        sb.append(tags[i]);
+        if (i > 0) {
+          sb.append(",");
+        }
+      }
 
       String metric = counter.getMetric();
+      String finalMetricsSeenName = metric + ":" + sb.toString();
       long finalValue = value;
-      if (lastSeenCounters.containsKey(metric)) {
+      if (lastSeenCounters.containsKey(finalMetricsSeenName)) {
         // If we've seen this counter before then calculate the difference
         // by subtracting the new value from the old. StatsD expects a relative
         // counter, not an absolute!
-        finalValue = Math.max(0, value - lastSeenCounters.get(metric));
+        finalValue = Math.max(0, value - lastSeenCounters.get(finalMetricsSeenName));
       }
       // Store the last value we saw so that the next addCounter call can make
       // the proper relative value
-      lastSeenCounters.put(metric, value);
+      lastSeenCounters.put(finalMetricsSeenName, value);
 
       statsdClient.count(metric, finalValue, tags);
     }
