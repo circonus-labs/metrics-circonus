@@ -3,13 +3,15 @@ package org.coursera.metrics.datadog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.IllegalArgumentException;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class TagsMerger {
-  private static final Logger LOG = LoggerFactory.getLogger(TagsMerger.class);
+class TagUtils {
+  private static final Logger LOG = LoggerFactory.getLogger(TagUtils.class);
 
   /**
    *
@@ -18,7 +20,7 @@ class TagsMerger {
    * @return merged tags list. If there is duplicated key, tags in tags2 will overwrite tags
    * in tags1, and tags in the back of the list will overwrite tags in the front of the list.
    */
-  static List<String> mergeTags(List<String> tags1, List<String> tags2) {
+  public static List<String> mergeTags(List<String> tags1, List<String> tags2) {
     if (tags1 == null || tags1.isEmpty()) {
       return tags2;
     } else if (tags2 == null || tags2.isEmpty()) {

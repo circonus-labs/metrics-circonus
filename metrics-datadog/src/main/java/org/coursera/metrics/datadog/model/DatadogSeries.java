@@ -8,6 +8,8 @@ import java.util.regex.Matcher;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
+import org.coursera.metrics.datadog.TaggedName;
+
 public abstract class DatadogSeries<T extends Number> {
   abstract protected String getType();
 
@@ -17,24 +19,12 @@ public abstract class DatadogSeries<T extends Number> {
   private String host;
   private List<String> tags;
 
-  // Expect the tags in the pattern
-  // namespace.metricName[tag1:value1,tag2:value2,etc....]
-  private final Pattern tagPattern = Pattern
-      .compile("([\\w\\.]+)\\[([\\w\\W]+)\\]");
-
   public DatadogSeries(String name, T count, Long epoch, String host, List<String> additionalTags) {
-    Matcher matcher = tagPattern.matcher(name);
-    this.tags = new ArrayList<String>();
+    TaggedName taggedName = TaggedName.decode(name);
+    this.name = taggedName.getMetricName();
+    this.tags = taggedName.getEncodedTags();
 
-    if (matcher.find() && matcher.groupCount() == 2) {
-      this.name = matcher.group(1);
-      for(String t : matcher.group(2).split("\\,")) {
-        this.tags.add(t);
-      }
-    } else {
-      this.name = name;
-    }
-    if(additionalTags != null) {
+    if (additionalTags != null) {
       this.tags.addAll(additionalTags);
     }
     this.count = count;
