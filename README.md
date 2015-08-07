@@ -98,7 +98,8 @@ metrics:
       tags:                                 # Optional. Defaults to (empty)
       includes:                             # Optional. Defaults to (all).
       excludes:                             # Optional. Defaults to (none).
-      http:
+      transport:
+        type: http
         apiKey: <apiKey>
         connectTimeout: <duration>          # Optional. Default is 5 seconds
         socketTimeout: <duration>           # Optional. Default is 5 seconds
