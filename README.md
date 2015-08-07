@@ -34,6 +34,43 @@ val reporter =
     ...
 ~~~
 
+### Tag encoding and expansion
+
+Datadog supports powerful [tagging](http://docs.datadoghq.com/faq/#tagging) 
+functionality while the Metrics API does not. Thus, `metrics-datadog` utilizes 
+a special, overloaded metric naming syntax that enables tags to piggyback on
+metric names while passing through the Metrics library. The tags are unpacked 
+by `metrics-datadog` at reporting time and are sent along to Datadog via the
+configured transport layer. Here's the metric name syntax:
+
+`[tagName:tagValue,tagName:tagValue,...]`
+
+`metrics-datadog` is mainly a reporting library and doesn't currently 
+implement a tag-aware decorator on top of the core `Metrics` API. It
+does, however, expose a `TaggedName` class that helps you encode/decode tags in 
+metric names using the syntax above. You can utilize this helper class
+methods when registering and recording metrics. Note that in order for tag
+propagation to work, you'll need to use our `DefaultMetricNameFormatter` 
+(or a formatter with compatible parsing logic).
+
+We also support the notion of static, "additional tags". This feature allows 
+you to define a set of tags that are appended to all metrics sent through 
+the reporter. It's useful for setting static tags such as the 
+environment, service name or version. Additional tags are configured via 
+the `DatadogReporter` constructor. 
+
+Finally, we support the notion of "dynamic tags". By implementing and 
+registering a `DynamicTagsCallback` with `DatadogReporter`, you can control
+the values of "additional tags" at runtime. Dynamic tags are merged with 
+and override any additional tags set.
+
+*Performance note*: Heavy use of tagging, especially tags values with high 
+cardinality, can dramatically increase memory usage, as all tag permutations
+are tracked and counted in-memory by the Metrics library. Also note that some
+[MetricRegistry APIs](https://github.com/dropwizard/metrics/blob/master/metrics-core/src/main/java/io/dropwizard/metrics/MetricRegistry.java#L376)
+do defensive copies on the entire metrics set, which can be prohibitively 
+expensive CPU and memory-wise if you have a huge, heavily tagged metric set.
+
 ### Dropwizard Metrics Reporter
 
 If you have a dropwizard project and have at least `dropwizard-core` 0.7.X, 

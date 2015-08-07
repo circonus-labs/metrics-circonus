@@ -80,7 +80,7 @@ public class DatadogReporter extends ScheduledReporter {
     if (tagsCallback != null) {
       List<String> dynamicTags = tagsCallback.getTags();
       if (dynamicTags != null && ! dynamicTags.isEmpty()) {
-        newTags = TagsMerger.mergeTags(tags, dynamicTags);
+        newTags = TagUtils.mergeTags(tags, dynamicTags);
       }
     }
 

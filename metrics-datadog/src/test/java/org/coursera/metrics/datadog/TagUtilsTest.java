@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-public class TagsMergerTest {
+
+public class TagUtilsTest {
 
   @Test
   public void mergeTagsWithoutDupKey() throws Exception {
@@ -21,7 +22,7 @@ public class TagsMergerTest {
     List<String> expected = new ArrayList<String>();
     expected.addAll(tags1);
     expected.addAll(tags2);
-    assert(new TreeSet<String>(TagsMerger.mergeTags(tags1, tags2)).equals(
+    assert(new TreeSet<String>(TagUtils.mergeTags(tags1, tags2)).equals(
             new TreeSet<String>(expected)));
   }
 
@@ -38,7 +39,7 @@ public class TagsMergerTest {
     List<String> expected = new ArrayList<String>();
     expected.add("key1:v1");
     expected.addAll(tags2);
-    assert(new TreeSet<String>(TagsMerger.mergeTags(tags1, tags2)).equals(
+    assert(new TreeSet<String>(TagUtils.mergeTags(tags1, tags2)).equals(
             new TreeSet<String>(expected)));
   }
 }
