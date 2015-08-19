@@ -4,8 +4,8 @@ Simple Metrics reporter that sends reporting info to Datadog, supports both HTTP
 ## Usage
 
 ~~~scala
-import org.coursera.metrics.DatadogReporter
-import org.coursera.metrics.DatadogReporter.Expansions._
+import org.coursera.metrics.datadog.DatadogReporter
+import org.coursera.metrics.datadog.DatadogReporter.Expansion._
 import org.coursera.metrics.datadog.transport.Transport
 import org.coursera.metrics.datadog.transport.HttpTransport
 import org.coursera.metrics.datadog.transport.UdpTransport
