@@ -16,6 +16,7 @@ public class TaggedNameTest {
 
     assertEquals("metric", taggedName.getMetricName());
     assertEquals(0, taggedName.getEncodedTags().size());
+    assertEquals("metric", taggedName.encode());
   }
 
   @Test
