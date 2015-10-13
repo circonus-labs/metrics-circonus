@@ -192,7 +192,13 @@ public class DatadogReporter extends ScheduledReporter {
 
   private void reportCounter(String name, Counter counter, long timestamp, List<String> tags)
       throws IOException {
-    request.addCounter(new DatadogCounter(name, counter.getCount(), timestamp, host, tags));
+    // A Metrics counter is actually a Datadog Gauge.  Datadog Counters are for rates which is
+    // similar to the Metrics Meter type.  Metrics counters have increment and decrement
+    // functionality, which implies they are instantaneously measurable, which implies they are
+    // actually a gauge. The Metrics documentation agrees, stating:
+    // "A counter is just a gauge for an AtomicLong instance. You can increment or decrement its
+    // value. For example, we may want a more efficient way of measuring the pending job in a queue"
+    request.addGauge(new DatadogGauge(name, counter.getCount(), timestamp, host, tags));
   }
 
   private void reportGauge(String name, Gauge gauge, long timestamp, List<String> tags)

@@ -166,7 +166,7 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(transport).prepare();
-    inOrder.verify(request).addCounter(new DatadogCounter("counter", 100L, timestamp, HOST, tags));
+    inOrder.verify(request).addGauge(new DatadogGauge("counter", 100L, timestamp, HOST, tags));
     inOrder.verify(request).send();
 
     verify(transport).prepare();
@@ -322,8 +322,8 @@ public class DatadogReporterTest {
             this.<Meter>map(),
             this.<Timer>map());
 
-    verify(request).addCounter(new DatadogCounter("testprefix.counter", 100L, timestamp, HOST, tags));
-    verify(request, never()).addCounter(new DatadogCounter("counter", 100L, timestamp, HOST, tags));
+    verify(request).addGauge(new DatadogGauge("testprefix.counter", 100L, timestamp, HOST, tags));
+    verify(request, never()).addGauge(new DatadogGauge("counter", 100L, timestamp, HOST, tags));
   }
 
   @Test
@@ -343,7 +343,7 @@ public class DatadogReporterTest {
             this.<Meter>map(),
             this.<Timer>map());
 
-    verify(request).addCounter(new DatadogCounter("counter", 100L, timestamp, HOST, dynamicTags));
+    verify(request).addGauge(new DatadogGauge("counter", 100L, timestamp, HOST, dynamicTags));
   }
 
   @Test
@@ -367,12 +367,12 @@ public class DatadogReporterTest {
 
     final InOrder inOrder = inOrder(transport, request);
     inOrder.verify(transport).prepare();
-    inOrder.verify(request).addCounter(new DatadogCounter("my.metric.counter",
+    inOrder.verify(request).addGauge(new DatadogGauge("my.metric.counter",
         123L,
         timestamp,
         HOST,
         tags));
-    inOrder.verify(request, never()).addCounter(new DatadogCounter("counter",
+    inOrder.verify(request, never()).addGauge(new DatadogGauge("counter",
         123L,
         timestamp,
         HOST,
