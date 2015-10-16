@@ -1,19 +1,20 @@
 package org.coursera.metrics.datadog.transport;
 
+import java.io.IOException;
+
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Response;
+import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
 import org.coursera.metrics.serializer.JsonSerializer;
 import org.coursera.metrics.serializer.Serializer;
-import org.apache.http.entity.ContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
-import static org.apache.http.client.fluent.Request.*;
+import static org.apache.http.client.fluent.Request.Post;
 
 /**
  * Uses the datadog http webservice to push metrics.
@@ -28,18 +29,20 @@ public class HttpTransport implements Transport {
   private final String seriesUrl;
   private final int connectTimeout;     // in milliseconds
   private final int socketTimeout;      // in milliseconds
+  private final HttpHost proxy;
 
-  private HttpTransport(String apiKey, int connectTimeout, int socketTimeout) {
+  private HttpTransport(String apiKey, int connectTimeout, int socketTimeout, HttpHost proxy) {
     this.seriesUrl = String.format("%s/series?api_key=%s", BASE_URL, apiKey);
     this.connectTimeout = connectTimeout;
     this.socketTimeout = socketTimeout;
+    this.proxy = proxy;
   }
 
   public static class Builder {
     String apiKey;
     int connectTimeout = 5000;
     int socketTimeout = 5000;
-
+    HttpHost proxy;
 
     public Builder withApiKey(String key) {
       this.apiKey = key;
@@ -56,8 +59,13 @@ public class HttpTransport implements Transport {
       return this;
     }
 
+    public Builder withProxy(String proxyHost, int proxyPort) {
+      this.proxy = new HttpHost(proxyHost, proxyPort);
+      return this;
+    }
+
     public HttpTransport build() {
-      return new HttpTransport(apiKey, connectTimeout, socketTimeout);
+      return new HttpTransport(apiKey, connectTimeout, socketTimeout, proxy);
     }
   }
 
@@ -99,12 +107,18 @@ public class HttpTransport implements Transport {
         LOG.debug(sb.toString());
       }
       long start = System.currentTimeMillis();
-      Response response = Post(this.transport.seriesUrl)
-          .useExpectContinue()
-          .connectTimeout(this.transport.connectTimeout)
-          .socketTimeout(this.transport.socketTimeout)
-          .bodyString(postBody, ContentType.APPLICATION_JSON)
-          .execute();
+      org.apache.http.client.fluent.Request request = Post(this.transport.seriesUrl)
+        .useExpectContinue()
+        .connectTimeout(this.transport.connectTimeout)
+        .socketTimeout(this.transport.socketTimeout)
+        .bodyString(postBody, ContentType.APPLICATION_JSON);
+
+      if (this.transport.proxy != null) {
+        request.viaProxy(this.transport.proxy);
+      }
+
+      Response response = request.execute();
+
       long elapsed = System.currentTimeMillis() - start;
 
       if (LOG.isDebugEnabled()) {
