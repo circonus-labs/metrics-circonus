@@ -30,18 +30,20 @@ public class TaggedName {
   }
 
   public String encode() {
-    StringBuilder sb = new StringBuilder(this.metricName);
-    sb.append('[');
-    String prefix = "";
-    for (String encodedTag : encodedTags) {
-      sb.append(prefix);
-      sb.append(encodedTag);
-      prefix = ",";
+    if (!encodedTags.isEmpty()) {
+      StringBuilder sb = new StringBuilder(this.metricName);
+      sb.append('[');
+      String prefix = "";
+      for (String encodedTag : encodedTags) {
+        sb.append(prefix);
+        sb.append(encodedTag);
+        prefix = ",";
+      }
+      sb.append(']');
+      return sb.toString();
+    } else {
+      return this.metricName;
     }
-    sb.append(']');
-
-    return sb.toString();
-
   }
 
   public static TaggedName decode(String encodedTaggedName) {
