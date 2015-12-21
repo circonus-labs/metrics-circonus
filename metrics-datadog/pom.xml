@@ -28,7 +28,7 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.indeed</groupId>
+            <groupId>com.datadoghq</groupId>
             <artifactId>java-dogstatsd-client</artifactId>
         </dependency>
         <dependency>
