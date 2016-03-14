@@ -2,6 +2,7 @@ package org.coursera.metrics.datadog.transport;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
+import com.timgroup.statsd.StatsDClientErrorHandler;
 import org.coursera.metrics.datadog.model.DatadogCounter;
 import org.coursera.metrics.datadog.model.DatadogGauge;
 import org.slf4j.Logger;
@@ -28,10 +29,15 @@ public class UdpTransport implements Transport {
 
   private UdpTransport(String prefix, String statsdHost, int port, String[] globalTags) {
     statsd = new NonBlockingStatsDClient(
-        prefix,
-        statsdHost,
-        port,
-        globalTags
+            prefix,
+            statsdHost,
+            port,
+            globalTags,
+            new StatsDClientErrorHandler() {
+              public void handle(Exception e) {
+                LOG.error(e.getMessage(),e);
+              }
+            }
     );
   }
 
