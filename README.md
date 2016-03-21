@@ -17,7 +17,6 @@ val reporter = DatadogReporter.forRegistry(registry)
   .withEC2Host()
   .withTransport(httpTransport)
   .withExpansions(expansions)
-  .withMetricNameFormatter(ShortenedNameFormatter)
   .build()
 
 reporter.start(10, TimeUnit.SECONDS)
