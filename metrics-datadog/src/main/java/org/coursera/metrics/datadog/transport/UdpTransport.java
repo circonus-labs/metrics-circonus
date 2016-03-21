@@ -35,7 +35,7 @@ public class UdpTransport implements Transport {
             globalTags,
             new StatsDClientErrorHandler() {
               public void handle(Exception e) {
-                LOG.error(e.getMessage(),e);
+                LOG.error(e.getMessage(), e);
               }
             }
     );
