@@ -5,8 +5,8 @@ Simple Metrics reporter that sends reporting info to Datadog, supports both HTTP
 
 Datadog supports two main metric ingestion methods:
 
-- POSTing metrics via their [HTTP API]
-- Sending metrics via UDP (using a statsd-like protocol) to the local `[dogstatsd](http://docs.datadoghq.com/guides/dogstatsd/)` agent
+- POSTing metrics via their [HTTP API](http://docs.datadoghq.com/api/#metrics-post)
+- Sending metrics via UDP (using a statsd-like protocol) to the local [dogstatsd](http://docs.datadoghq.com/guides/dogstatsd/) agent
 
 Datadog recommends the `dogstatsd` UDP-based approach, but some may prefer the HTTP-based approach
 for various reasons e.g. a general adversity to running agents, the additional memory required by the agent and
