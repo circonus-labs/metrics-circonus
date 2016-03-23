@@ -1,6 +1,24 @@
 # Metrics Datadog Reporter
 Simple Metrics reporter that sends reporting info to Datadog, supports both HTTP and UDP.
 
+## UDP vs HTTP
+
+Datadog supports two main metric ingestion methods:
+
+- POSTing metrics via their [HTTP API](http://docs.datadoghq.com/api/#metrics-post)
+- Sending metrics via UDP (using a statsd-like protocol) to the local [dogstatsd](http://docs.datadoghq.com/guides/dogstatsd/) agent
+
+Datadog recommends the `dogstatsd` UDP-based approach, but some may prefer the HTTP-based approach
+for various reasons e.g. a general adversity to running agents, the additional memory required by the agent and
+forwarder (though this is configurable), stability, security or other environment/platform-level
+conflicts.
+
+Note that, in the event of a delivery failure, the HTTP-based transport does not buffer metrics in
+memory. It will attempt a handful of retries and then give up. Hence, when faced with an extended network
+partition window or a Datadog ingestion outage, some metrics will certainly be lost using this transport.
+That said, note that the UDP-based reporter also cannot buffer metrics forever due
+to memory constraints.
+
 ## Usage
 
 ~~~scala
