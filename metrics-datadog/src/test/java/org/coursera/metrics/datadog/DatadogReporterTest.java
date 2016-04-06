@@ -346,6 +346,45 @@ public class DatadogReporterTest {
   }
 
   @Test
+  public void reportsWithMetricNameFormatter() throws Exception {
+    final Gauge gauge = mock(Gauge.class);
+    final Counter counter = mock(Counter.class);
+    when(gauge.getValue()).thenReturn(100L);
+    when(counter.getCount()).thenReturn(100L);
+
+    DatadogReporter reporterWithMetricNameFormatter = DatadogReporter
+      .forRegistry(metricsRegistry)
+      .withHost(HOST)
+      .withClock(clock)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .withTransport(transport)
+      .withMetricNameFormatter(new DefaultMetricNameFormatter() {
+
+        public String format(String name, String... path) {
+          return "metric_name_formatter." + super.format(name, path);
+        }
+
+      })
+      .build();
+
+    reporterWithMetricNameFormatter.report(
+      this.map("gauge", gauge),
+      this.map("counter", counter),
+      this.<Histogram>map(),
+      this.<Meter>map(),
+      this.<Timer>map()
+    );
+
+    verify(request).addGauge(
+        new DatadogGauge("metric_name_formatter.gauge", 100L, timestamp, HOST, null)
+    );
+    verify(request).addGauge(
+        new DatadogGauge("metric_name_formatter.counter", 100L, timestamp, HOST, null)
+    );
+  }
+
+  @Test
   public void reportsWithFilter() throws Exception {
     Counter counter = metricsRegistry.counter("my.metric.counter");
     counter.inc(123);
