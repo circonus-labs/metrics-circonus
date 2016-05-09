@@ -1,68 +1,39 @@
-# Metrics Datadog Reporter
-Simple Metrics reporter that sends reporting info to Datadog, supports both HTTP and UDP.
+# Metrics Circonus Reporter
 
-## UDP vs HTTP
-
-Datadog supports two main metric ingestion methods:
-
-- POSTing metrics via their [HTTP API](http://docs.datadoghq.com/api/#metrics-post)
-- Sending metrics via UDP (using a statsd-like protocol) to the local [dogstatsd](http://docs.datadoghq.com/guides/dogstatsd/) agent
-
-Datadog recommends the `dogstatsd` UDP-based approach, but some may prefer the HTTP-based approach
-for various reasons e.g. a general adversity to running agents, the additional memory required by the agent and
-forwarder (though this is configurable), stability, security or other environment/platform-level
-conflicts.
-
-Note that, in the event of a delivery failure, the HTTP-based transport does not buffer metrics in
-memory. It will attempt a handful of retries and then give up. Hence, when faced with an extended network
-partition window or a Datadog ingestion outage, some metrics will certainly be lost using this transport.
-That said, note that the UDP-based reporter also cannot buffer metrics forever due
-to memory constraints.
+Simple Metrics reporter that sends metrics reporting info to Circonus via HTTPTrap.
 
 ## Usage
 
-~~~scala
-import org.coursera.metrics.datadog.DatadogReporter
-import org.coursera.metrics.datadog.DatadogReporter.Expansion._
-import org.coursera.metrics.datadog.transport.Transport
-import org.coursera.metrics.datadog.transport.HttpTransport
-import org.coursera.metrics.datadog.transport.UdpTransport
+~~~java
+import com.circonus.metrics.circonus.CirconusReporter
+import com.circonus.metrics.circonus.transport.HttpTransport
 
 ...
-val expansions = EnumSet.of(COUNT, RATE_1_MINUTE, RATE_15_MINUTE, MEDIAN, P95, P99)
-val httpTransport = new HttpTransport.Builder().withApiKey(apiKey).build()
-val reporter = DatadogReporter.forRegistry(registry)
+HttpTransport httpTransport = new HttpTransport.Builder()
+  .withApiKey(apiKey)  // API token from Circonus
+  .withCheckId(checkUuid) // Check UUID of the HTTPTrap
+  .withCheckSecret(checkSecret) // Secret for the HTTPTrap
+  // .withProtocol("https") // "https" is the default
+  // .withBroker("172.16.99.13:43191") // My enterprise broker
+  .build()
+CirconuReporter reporter = CirconuReporter.forRegistry(registry)
   .withEC2Host()
   .withTransport(httpTransport)
-  .withExpansions(expansions)
   .build()
 
 reporter.start(10, TimeUnit.SECONDS)
 ~~~
 
-Example of using UDP transport:
-
-~~~scala
-...
-val udpTransport = new UdpTransport.Builder().build()
-val reporter = 
-    ...
-    .withTransport(udpTransport)
-    ...
-~~~
-
 ### Tag encoding and expansion
 
-Datadog supports powerful [tagging](http://docs.datadoghq.com/faq/#tagging) 
-functionality while the Metrics API does not. Thus, `metrics-datadog` utilizes 
-a special, overloaded metric naming syntax that enables tags to piggyback on
-metric names while passing through the Metrics library. The tags are unpacked 
-by `metrics-datadog` at reporting time and are sent along to Datadog via the
-configured transport layer. Here's the metric name syntax:
+`metrics-circonus` utilizes a special, overloaded metric naming syntax that
+enables tags to piggyback on metric names while passing through the Metrics
+library. The tags are unpacked by `metrics-circonus` at reporting time and
+are sent along to Circonus via the transport layer. Here's the metric name syntax:
 
-`[tagName:tagValue,tagName:tagValue,...]`
+`[tagCategory:tag,tagCategory:tag,...]`
 
-`metrics-datadog` is mainly a reporting library and doesn't currently 
+`metrics-circonus` is mainly a reporting library and doesn't currently 
 implement a tag-aware decorator on top of the core `Metrics` API. It
 does, however, expose a `TaggedName` class that helps you encode/decode tags in 
 metric names using the syntax above. You can utilize this helper class
@@ -74,10 +45,10 @@ We also support the notion of static, "additional tags". This feature allows
 you to define a set of tags that are appended to all metrics sent through 
 the reporter. It's useful for setting static tags such as the 
 environment, service name or version. Additional tags are configured via 
-the `DatadogReporter` constructor. 
+the `CirconusReporter` constructor. 
 
 Finally, we support the notion of "dynamic tags". By implementing and 
-registering a `DynamicTagsCallback` with `DatadogReporter`, you can control
+registering a `DynamicTagsCallback` with `CirconusReporter`, you can control
 the values of "additional tags" at runtime. Dynamic tags are merged with 
 and override any additional tags set.
 
@@ -92,14 +63,14 @@ expensive CPU and memory-wise if you have a huge, heavily tagged metric set.
 
 If you have a dropwizard project and have at least `dropwizard-core` 0.7.X, 
 then you can perform the following steps to automatically report metrics to
-datadog.
+Circonus.
 
-First, add the `dropwizard-metrics-datadog` dependency in your POM:
+First, add the `dropwizard-metrics-circonus` dependency in your POM:
 
 ~~~xml    
     <dependency>
-        <groupId>org.coursera</groupId>
-        <artifactId>dropwizard-metrics-datadog</artifactId>
+        <groupId>com.circonus</groupId>
+        <artifactId>dropwizard-metrics-circonus</artifactId>
         <version>1.1.2</version>
     </dependency>
 ~~~
@@ -110,7 +81,7 @@ Then just add the following to your `dropwizard` YAML config file.
 metrics:
   frequency: 1 minute                       # Default is 1 second.
   reporters:
-    - type: datadog
+    - type: circonus
       host: <host>                          # Optional with UDP Transport
       tags:                                 # Optional. Defaults to (empty)
       includes:                             # Optional. Defaults to (all).
@@ -118,43 +89,16 @@ metrics:
       transport:
         type: http
         apiKey: <apiKey>
+        checkId: <checkUuid>
+        checkSecret: <checkSecret>
+        protocol: https                     # Optional. Default is https
+        broker: "host:port"                 # Optional. Default is trap.noit.circonus.net:443
         connectTimeout: <duration>          # Optional. Default is 5 seconds
         socketTimeout: <duration>           # Optional. Default is 5 seconds
 ~~~
 
 Once your `dropwizard` application starts, your metrics should start appearing
-in Datadog.
-
-#### Transport options
-
-HTTP Transport:
-
-~~~yaml
-metrics:
-  frequency: 1 minute                       # Default is 1 second.
-  reporters:
-    - type: datadog
-      host: <host>
-      transport:
-        type: http
-        apiKey: <apiKey>
-        connectTimeout: <duration>          # Optional. Default is 5 seconds
-        socketTimeout: <duration>           # Optional. Default is 5 seconds
-~~~
-
-UDP Transport:
-
-~~~yaml
-metrics:
-  frequency: 1 minute                       # Default is 1 second.
-  reporters:
-    - type: datadog
-      transport:
-        type: udp
-        prefix:                             # Optional. Default is (empty)
-        statsdHost: "localhost"             # Optional. Default is "localhost"
-        port: 8125                          # Optional. Default is 8125
-~~~
+in Circonus.
 
 #### Filtering
 
@@ -165,7 +109,7 @@ If you want to filter only a few metrics, you can use the `includes` or
 metrics:
   frequency: 1 minute                       # Default is 1 second.
   reporters:
-    - type: datadog
+    - type: circonus
       host: <host>
       includes:
         - jvm.
@@ -178,21 +122,25 @@ part of the metric name (not just the beginning).
 
 ## Maven Info
 
-Metrics datadog reporter is available as an artifact on
-[Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.coursera%22%20AND%20a%3A%22metrics-datadog%22)
+Metrics circonus reporter is available as an artifact on
+[Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.circonus%22%20AND%20a%3A%22metrics-circonus%22)
 
-* Group: org.coursera
-* Artifact: metrics-datadog
-* Version: 1.1.2
+* Group: com.circonus
+* Artifact: metrics-circonus
+* Version: 1.0.0
 
-Dropwizard datadog reporter is available as an artifact on
-[Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.coursera%22%20AND%20a%3A%22dropwizard-metrics-datadog%22)
+Dropwizard circonus reporter is available as an artifact on
+[Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.circonus%22%20AND%20a%3A%22dropwizard-metrics-circonus%22)
 
-* Group: org.coursera
-* Artifact: dropwizard-metrics-datadog
-* Version: 1.1.2
+* Group: com.circonus
+* Artifact: dropwizard-metrics-circonus
+* Version: 1.0.0
+
+## Origins
+
+This code is based on [work done a Coursera](https://github.com/coursera/metrics-datadog)
+by Daniel Chia and Nick Dellamaggiore.  Thanks!
 
 ## Contributing
 
-We follow Google's [Java Code
-Style](https://google-styleguide.googlecode.com/svn/trunk/javaguide.html)
+Send a pull request!
