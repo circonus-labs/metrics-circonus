@@ -4,14 +4,14 @@
     <parent>
         <groupId>com.circonus</groupId>
         <artifactId>metrics-circonus-parent</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>metrics-circonus</artifactId>
     <groupId>com.circonus</groupId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Circonus Metrics Reporter</name>
     <description>A Circonus reporter backend for Coda Hale's Metrics</description>
@@ -46,4 +46,10 @@
         </dependency>
     </dependencies>
 
+    <distributionManagement>
+      <snapshotRepository>
+        <id>ossrh</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
+    </distributionManagement>
 </project>
