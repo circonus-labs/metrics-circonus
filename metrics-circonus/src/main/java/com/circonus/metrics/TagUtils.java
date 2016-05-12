@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -5,8 +5,8 @@ Simple Metrics reporter that sends metrics reporting info to Circonus via HTTPTr
 ## Usage
 
 ~~~java
-import com.circonus.metrics.circonus.CirconusReporter
-import com.circonus.metrics.circonus.transport.HttpTransport
+import com.circonus.metrics.CirconusReporter
+import com.circonus.metrics.transport.HttpTransport
 
 ...
 HttpTransport httpTransport = new HttpTransport.Builder()
@@ -83,7 +83,7 @@ Circonus).  For example, you you're sending data elsewhere on other transports
 you'll still see all the same stuff you would otherwise.
 
 ~~~java
-   import com.circonus.metrics.circonus.CirconusMetricRegistryAlaCoda
+   import com.circonus.metrics.CirconusMetricRegistryAlaCoda
 
    ...
 

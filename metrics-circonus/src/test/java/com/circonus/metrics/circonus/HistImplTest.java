@@ -1,6 +1,6 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
-import com.circonus.metrics.circonus.HistImpl;
+import com.circonus.metrics.HistImpl;
 
 import java.lang.Math;
 

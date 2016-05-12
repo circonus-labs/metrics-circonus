@@ -2,10 +2,10 @@
   import com.codahale.metrics.*;
   import java.util.concurrent.TimeUnit;
   import java.util.ArrayList;
-  import com.circonus.metrics.circonus.HistogramAlaCoda;
-  import com.circonus.metrics.circonus.CirconusReporter;
-  import com.circonus.metrics.circonus.CirconusMetricRegistryAlaCoda;
-  import com.circonus.metrics.circonus.transport.HttpTransport;
+  import com.circonus.metrics.HistogramAlaCoda;
+  import com.circonus.metrics.CirconusReporter;
+  import com.circonus.metrics.CirconusMetricRegistryAlaCoda;
+  import com.circonus.metrics.transport.HttpTransport;
 
   public class Example {
     static final MetricRegistry metrics = new CirconusMetricRegistryAlaCoda();

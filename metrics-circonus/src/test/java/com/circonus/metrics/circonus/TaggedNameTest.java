@@ -1,8 +1,8 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 import org.junit.Test;
 
-import static com.circonus.metrics.circonus.TaggedName.TaggedNameBuilder;
+import static com.circonus.metrics.TaggedName.TaggedNameBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 

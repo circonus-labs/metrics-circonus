@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 /*
 https://github.com/dropwizard/metrics/blob/3.1-maintenance/metrics-core/src/main/java/com/codahale/metrics/Timer.java
@@ -8,8 +8,8 @@ import java.io.Closeable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import com.circonus.metrics.circonus.HistImpl;
-import com.circonus.metrics.circonus.HistImplContainer;
+import com.circonus.metrics.HistImpl;
+import com.circonus.metrics.HistImplContainer;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metered;
 import com.codahale.metrics.Sampling;

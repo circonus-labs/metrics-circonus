@@ -1,8 +1,8 @@
-package com.circonus.metrics.circonus.transport;
+package com.circonus.metrics.transport;
 
-import com.circonus.metrics.circonus.model.CirconusCounter;
-import com.circonus.metrics.circonus.model.CirconusGauge;
-import com.circonus.metrics.circonus.model.CirconusHistogram;
+import com.circonus.metrics.model.CirconusCounter;
+import com.circonus.metrics.model.CirconusGauge;
+import com.circonus.metrics.model.CirconusHistogram;
 
 import java.io.Closeable;
 import java.io.IOException;

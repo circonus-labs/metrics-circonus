@@ -1,6 +1,6 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
-import com.circonus.metrics.circonus.model.CirconusCounter;
+import com.circonus.metrics.model.CirconusCounter;
 
 import org.junit.Test;
 

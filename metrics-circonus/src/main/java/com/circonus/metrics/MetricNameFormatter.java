@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 public interface MetricNameFormatter {
 

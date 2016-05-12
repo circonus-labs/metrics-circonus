@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus.transport;
+package com.circonus.metrics.transport;
 
 import java.io.IOException;
 import javax.net.ssl.SSLContext;
@@ -22,9 +22,9 @@ import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Response;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
-import com.circonus.metrics.circonus.model.CirconusCounter;
-import com.circonus.metrics.circonus.model.CirconusGauge;
-import com.circonus.metrics.circonus.model.CirconusHistogram;
+import com.circonus.metrics.model.CirconusCounter;
+import com.circonus.metrics.model.CirconusGauge;
+import com.circonus.metrics.model.CirconusHistogram;
 import com.circonus.metrics.serializer.JsonSerializer;
 import com.circonus.metrics.serializer.Serializer;
 import org.slf4j.Logger;

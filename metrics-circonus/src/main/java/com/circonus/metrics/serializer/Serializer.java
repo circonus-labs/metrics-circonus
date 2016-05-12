@@ -1,8 +1,8 @@
 package com.circonus.metrics.serializer;
 
-import com.circonus.metrics.circonus.model.CirconusCounter;
-import com.circonus.metrics.circonus.model.CirconusGauge;
-import com.circonus.metrics.circonus.model.CirconusHistogram;
+import com.circonus.metrics.model.CirconusCounter;
+import com.circonus.metrics.model.CirconusGauge;
+import com.circonus.metrics.model.CirconusHistogram;
 
 import java.io.IOException;
 

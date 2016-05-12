@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 /*
  * Copyright (c) 2012-2016, Circonus, Inc. All rights reserved.

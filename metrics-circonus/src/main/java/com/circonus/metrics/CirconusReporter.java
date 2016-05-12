@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
@@ -11,13 +11,13 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
-import com.circonus.metrics.circonus.model.CirconusCounter;
-import com.circonus.metrics.circonus.model.CirconusGauge;
-import com.circonus.metrics.circonus.model.CirconusHistogram;
-import com.circonus.metrics.circonus.transport.Transport;
-import com.circonus.metrics.circonus.HistImpl;
-import com.circonus.metrics.circonus.HistImplContainer;
-import com.circonus.metrics.circonus.CirconusMetricRegistryAlaCoda;
+import com.circonus.metrics.model.CirconusCounter;
+import com.circonus.metrics.model.CirconusGauge;
+import com.circonus.metrics.model.CirconusHistogram;
+import com.circonus.metrics.transport.Transport;
+import com.circonus.metrics.HistImpl;
+import com.circonus.metrics.HistImplContainer;
+import com.circonus.metrics.CirconusMetricRegistryAlaCoda;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -392,7 +392,7 @@ public class CirconusReporter extends ScheduledReporter {
     /**
      * The transport mechanism to push metrics to Circonus. Supports HTTPTrap.
      *
-     * @see com.circonus.metrics.circonus.transport.HttpTransport
+     * @see com.circonus.metrics.transport.HttpTransport
      */
     public Builder withTransport(Transport transport) {
       this.transport = transport;

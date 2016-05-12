@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus.model;
+package com.circonus.metrics.model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,16 +8,17 @@ import java.util.regex.Matcher;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-import com.circonus.metrics.circonus.TaggedName;
+import com.circonus.metrics.TaggedName;
+import com.circonus.metrics.HistImpl;
 
-public abstract class CirconusSeries<T extends Number> {
+public class CirconusHistogram {
   private String name;
-  private T count;
+  private HistImpl hist;
   private Long epoch;
   private String host;
   private List<String> tags;
 
-  public CirconusSeries(String name, T count, Long epoch, String host, List<String> additionalTags) {
+  public CirconusHistogram(String name, HistImpl hist, Long epoch, String host, List<String> additionalTags) {
     TaggedName taggedName = TaggedName.decode(name);
     this.name = taggedName.getMetricName();
     this.tags = taggedName.getEncodedTags();
@@ -25,7 +26,7 @@ public abstract class CirconusSeries<T extends Number> {
     if (additionalTags != null) {
       this.tags.addAll(additionalTags);
     }
-    this.count = count;
+    this.hist = hist;
     this.epoch = epoch;
     this.host = host;
   }
@@ -38,8 +39,8 @@ public abstract class CirconusSeries<T extends Number> {
   public List<String> get_tags() {
     return tags;
   }
-  public Number get_value() {
-    return count;
+  public String[] get_value() {
+    return hist.toDecStrings();
   }
   public String get_type() {
     return "n";
@@ -48,11 +49,11 @@ public abstract class CirconusSeries<T extends Number> {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof CirconusSeries)) return false;
+    if (!(o instanceof CirconusHistogram)) return false;
 
-    CirconusSeries that = (CirconusSeries) o;
+    CirconusHistogram that = (CirconusHistogram) o;
 
-    if (!count.equals(that.count)) return false;
+    if (!hist.equals(that.hist)) return false;
     if (!epoch.equals(that.epoch)) return false;
     if (!host.equals(that.host)) return false;
     if (!name.equals(that.name)) return false;
@@ -64,7 +65,7 @@ public abstract class CirconusSeries<T extends Number> {
   @Override
   public int hashCode() {
     int result = name.hashCode();
-    result = 31 * result + count.hashCode();
+    result = 31 * result + hist.hashCode();
     result = 31 * result + epoch.hashCode();
     result = 31 * result + host.hashCode();
     result = 31 * result + tags.hashCode();
@@ -73,9 +74,9 @@ public abstract class CirconusSeries<T extends Number> {
 
   @Override
   public String toString() {
-    return "CirconusSeries{" +
+    return "CirconusHist{" +
         "name='" + name + '\'' +
-        ", count=" + count +
+        ", hist=..." +
         ", epoch=" + epoch +
         ", host='" + host + '\'' +
         ", tags=" + tags +

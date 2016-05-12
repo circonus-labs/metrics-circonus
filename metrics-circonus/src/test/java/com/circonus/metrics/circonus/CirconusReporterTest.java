@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
@@ -10,9 +10,9 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
-import com.circonus.metrics.circonus.CirconusReporter.Expansion;
-import com.circonus.metrics.circonus.model.CirconusGauge;
-import com.circonus.metrics.circonus.transport.Transport;
+import com.circonus.metrics.CirconusReporter.Expansion;
+import com.circonus.metrics.model.CirconusGauge;
+import com.circonus.metrics.transport.Transport;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;

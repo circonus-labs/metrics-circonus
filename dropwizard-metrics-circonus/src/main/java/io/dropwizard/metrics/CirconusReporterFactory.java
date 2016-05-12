@@ -4,8 +4,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.circonus.metrics.circonus.CirconusReporter;
-import com.circonus.metrics.circonus.transport.AbstractTransportFactory;
+import com.circonus.metrics.CirconusReporter;
+import com.circonus.metrics.transport.AbstractTransportFactory;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;

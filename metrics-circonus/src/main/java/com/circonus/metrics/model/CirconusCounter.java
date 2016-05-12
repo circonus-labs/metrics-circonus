@@ -1,4 +1,4 @@
-package com.circonus.metrics.circonus.model;
+package com.circonus.metrics.model;
 
 import java.util.List;
 

@@ -3,9 +3,9 @@ package com.circonus.metrics.serializer;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.circonus.metrics.circonus.model.CirconusCounter;
-import com.circonus.metrics.circonus.model.CirconusGauge;
-import com.circonus.metrics.circonus.model.CirconusHistogram;
+import com.circonus.metrics.model.CirconusCounter;
+import com.circonus.metrics.model.CirconusGauge;
+import com.circonus.metrics.model.CirconusHistogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

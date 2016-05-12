@@ -1,10 +1,10 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 import java.util.List;
 
 /**
  * An implementation of this interface can be used to pass a callback to the builder of
- * {@link com.circonus.metrics.circonus.CirconusReporter CirconusReporter}, so that CirconusReporter
+ * {@link com.circonus.metrics.CirconusReporter CirconusReporter}, so that CirconusReporter
  * can use dynamic tags
  */
 public interface DynamicTagsCallback {

@@ -1,11 +1,11 @@
-package com.circonus.metrics.circonus;
+package com.circonus.metrics;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
-import com.circonus.metrics.circonus.HistogramAlaCoda;
-import com.circonus.metrics.circonus.TimerAlaCoda;
+import com.circonus.metrics.HistogramAlaCoda;
+import com.circonus.metrics.TimerAlaCoda;
 
 public class CirconusMetricRegistryAlaCoda extends MetricRegistry {
 
