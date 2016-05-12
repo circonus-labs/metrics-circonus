@@ -316,11 +316,11 @@ public class CirconusReporter extends ScheduledReporter {
       this.filter = MetricFilter.ALL;
       this.metricNameFormatter = new DefaultMetricNameFormatter();
       this.tags = new ArrayList<String>();
-      this.suppress_bad_analytics = false;
+      this.suppress_bad_analytics = true;
     }
 
     public Builder onlyCirconusAnalytics(Boolean suppress) {
-      this.suppress_bad_analytics = true;
+      this.suppress_bad_analytics = suppress;
       return this;
     }
 
