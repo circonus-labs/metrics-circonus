@@ -2,6 +2,7 @@ package com.circonus.metrics.circonus.transport;
 
 import com.circonus.metrics.circonus.model.CirconusCounter;
 import com.circonus.metrics.circonus.model.CirconusGauge;
+import com.circonus.metrics.circonus.model.CirconusHistogram;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -32,6 +33,11 @@ public interface Transport extends Closeable {
      * Add a counter to the request
      */
     void addCounter(CirconusCounter counter) throws IOException;
+
+    /**
+     * Add a counter to the request
+     */
+    void addHistogram(CirconusHistogram hist) throws IOException;
 
     /**
      * Send the request to Circonus

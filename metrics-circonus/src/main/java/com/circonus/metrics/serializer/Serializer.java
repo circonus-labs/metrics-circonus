@@ -2,6 +2,7 @@ package com.circonus.metrics.serializer;
 
 import com.circonus.metrics.circonus.model.CirconusCounter;
 import com.circonus.metrics.circonus.model.CirconusGauge;
+import com.circonus.metrics.circonus.model.CirconusHistogram;
 
 import java.io.IOException;
 
@@ -27,6 +28,11 @@ public interface Serializer {
    * Append a counter to the time series
    */
   public void appendCounter(CirconusCounter counter) throws IOException;
+
+  /**
+   * Append a histogram to the time series
+   */
+  public void appendHistogram(CirconusHistogram hist) throws IOException;
 
   /**
    * Mark ending of the circonus time series object

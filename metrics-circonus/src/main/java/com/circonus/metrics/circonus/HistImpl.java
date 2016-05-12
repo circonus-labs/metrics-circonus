@@ -31,6 +31,8 @@ package com.circonus.metrics.circonus;
  */
 
 import java.lang.Math;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 
 public class HistImpl {
   static final short DEFAULT_HIST_SIZE = 100;
@@ -67,15 +69,17 @@ public class HistImpl {
   public static class HistBin implements Comparable<HistBin> {
     private byte val;
     private byte exp;
-    public HistBin(Integer d) {
-      this(d.doubleValue());
-    }
-    public HistBin(Long d) {
-      this(d.doubleValue());
-    }
-    public HistBin(Double d) {
+    private long count;
+
+    public HistBin(Integer d) { this(d.doubleValue()); }
+    public HistBin(Integer d, long c) { this(d.doubleValue(), c); }
+    public HistBin(Long d) { this(d.doubleValue(), 1); }
+    public HistBin(Long d, long c) { this(d.doubleValue(), c); }
+    public HistBin(Double d) { this(d,1); }
+    public HistBin(Double d, long c) {
       val = (byte)0xff;
       exp = 0;
+      count = c;
       if(d.isNaN() || d.isInfinite()) return;
       else if(d == 0.0) val = 0;
       else {
@@ -116,9 +120,15 @@ public class HistImpl {
         }
       }
     }
-    public HistBin(byte v, byte e) { val = v; exp = e; }
+    public HistBin(byte v, byte e, long c) { val = v; exp = e; count = c; }
+    public HistBin(byte v, byte e) { this(v,e,1); }
     public byte getVal() { return val; }
     public byte getExp() { return exp; }
+    public void setVal(byte v) { val = v; }
+    public void setExp(byte e) { exp = e; }
+    public long getCount() { return count; }
+    public void setCount(long nc) { count = nc; }
+
     public Double getDouble() {
       int pidx = ((int)exp & 0x00ff);
       if(val > 99 || val < -99) return Double.NaN;
@@ -161,41 +171,34 @@ public class HistImpl {
     }
   }
 
-  private class HistBinCount {
-    private HistBin bin;
-    private long count;
-
-    public HistBinCount(HistBin b, long c) { bin = b; count = c; }
-    public HistBin getBin() { return bin; }
-    public long getCount() { return count; }
-    public void setCount(long nc) { count = nc; }
-  }
-
   private short allocd;
   private short used;
-  private HistBinCount[] bvs;
+  private HistBin[] bvs;
   private Object lock = new Object();
 
   // Returns the idx if found or the -1-idx of where it should inserted
-  public HistImpl() {
-    allocd = used = 0;
-    bvs = null;
+  public HistImpl(short size) {
+    bvs = new HistBin[size];
+    used = 0;
+    allocd = size;
   }
-  protected HistImpl(HistBinCount[] init) {
+  public HistImpl() { this(DEFAULT_HIST_SIZE); }
+  protected HistImpl(HistBin[] init) {
     bvs = init;
     used = allocd = (short)bvs.length;
   }
+
   private int internalFind(HistBin hb) {
     int rv = -1, l = 0, r = used - 1, idx = 0;
     if(used == 0) return -1;
     while(l < r) {
       int check = (r+l)/2;
-      rv = bvs[check].bin.compareTo(hb);
+      rv = bvs[check].compareTo(hb);
       if(rv == 0) l = r = check;
       else if(rv > 0) l = check + 1;
       else r = check - 1;
     }
-    if(rv != 0) rv = bvs[l].bin.compareTo(hb);
+    if(rv != 0) rv = bvs[l].compareTo(hb);
     idx = l;
     if(rv == 0) return idx;
     if(rv < 0) return -1-idx;
@@ -204,10 +207,11 @@ public class HistImpl {
 
   public synchronized void clear() { used = 0; }
   public Short numBins() { return used; }
-  public synchronized long insert(HistBin hb, long count) {
-    if(count == 0) return 0;
+  public synchronized long insert(HistBin hb) {
+    long count = hb.getCount();
+    if(hb.getCount() == 0) return 0;
     if(bvs == null) {
-      bvs = new HistBinCount[DEFAULT_HIST_SIZE];
+      bvs = new HistBin[DEFAULT_HIST_SIZE];
       allocd = DEFAULT_HIST_SIZE;
     }
     int idx = internalFind(hb);
@@ -215,10 +219,10 @@ public class HistImpl {
       /* Not found */
       idx = -1-idx;
       if(used == allocd) {
-        HistBinCount[] new_bvs = new HistBinCount[allocd + DEFAULT_HIST_SIZE];
+        HistBin[] new_bvs = new HistBin[allocd + DEFAULT_HIST_SIZE];
         if(idx > 0)
           System.arraycopy(bvs, 0, new_bvs, 0, idx);
-        new_bvs[idx] = new HistBinCount(hb, count);
+        new_bvs[idx] = hb;
         if(idx < used)
           System.arraycopy(bvs, idx, new_bvs, idx + 1, used - idx);
         bvs = new_bvs;
@@ -226,7 +230,7 @@ public class HistImpl {
       }
       else {
         System.arraycopy(bvs, idx, bvs, idx + 1, used - idx);
-        bvs[idx] = new HistBinCount(hb, count);
+        bvs[idx] = hb;
       }
       used++;
     } else {
@@ -238,26 +242,25 @@ public class HistImpl {
     }
     return count;
   }
-  public long insert(HistBin hb) { return insert(hb, 1); }
   public long insert(Double val, long count) {
-    return insert(new HistBin(val), count);
+    return insert(new HistBin(val, count));
   }
-  public long insert(Double val) { return insert(new HistBin(val), 1); }
+  public long insert(Double val) { return insert(new HistBin(val, 1)); }
   public long insert(Integer val, long count) {
-    return insert(new HistBin(val), count);
+    return insert(new HistBin(val, count));
   }
-  public long insert(Integer val) { return insert(new HistBin(val), 1); }
+  public long insert(Integer val) { return insert(new HistBin(val, 1)); }
   public long insert(Long val, long count) {
-    return insert(new HistBin(val), count);
+    return insert(new HistBin(val, count));
   }
-  public long insert(Long val) { return insert(new HistBin(val), 1); }
+  public long insert(Long val) { return insert(new HistBin(val, 1)); }
 
   public synchronized Double getApproxMean() {
     double divisor = 0.0;
     double sum = 0.0;
     for(int i=0;i<used;i++) {
-      if(bvs[i].bin.getVal() > 99 || bvs[i].bin.getVal() < -99) continue;
-      double midpoint = bvs[i].bin.getMidpoint();
+      if(bvs[i].getVal() > 99 || bvs[i].getVal() < -99) continue;
+      double midpoint = bvs[i].getMidpoint();
       double cardinality = (double)bvs[i].getCount();
       divisor += cardinality;
       sum += midpoint * cardinality;
@@ -269,8 +272,8 @@ public class HistImpl {
     int i;
     double sum = 0.0;
     for(i=0;i<used;i++) {
-      if(bvs[i].bin.getVal() > 99 || bvs[i].bin.getVal() < -99) continue;
-      double value = bvs[i].bin.getMidpoint();
+      if(bvs[i].getVal() > 99 || bvs[i].getVal() < -99) continue;
+      double value = bvs[i].getMidpoint();
       double cardinality = (double)bvs[i].getCount();
       sum += value * cardinality;
     }
@@ -282,7 +285,7 @@ public class HistImpl {
        bucket_left = 0.0, lower_cnt = 0.0, upper_cnt = 0.0;
     if(q_in.length < 1) return null;
     for(i_b=0;i_b<used;i_b++) {
-      if(bvs[i_b].bin.getVal() < -99 || bvs[i_b].bin.getVal() > 99) continue;
+      if(bvs[i_b].getVal() < -99 || bvs[i_b].getVal() > 99) continue;
       total_cnt += (double)bvs[i_b].getCount();
     }
     for(i_q=1;i_q<q_in.length;i_q++) if(q_in[i_q-1] > q_in[i_q]) return null;
@@ -294,9 +297,9 @@ public class HistImpl {
     } 
 
     for(i_b=0;i_b<used;i_b++) {
-      if(bvs[i_b].bin.getVal() < -99 || bvs[i_b].bin.getVal() > 99) continue;
-      bucket_width = bvs[i_b].bin.getBinWidth();
-      bucket_left = bvs[i_b].bin.getLeft();
+      if(bvs[i_b].getVal() < -99 || bvs[i_b].getVal() > 99) continue;
+      bucket_width = bvs[i_b].getBinWidth();
+      bucket_left = bvs[i_b].getLeft();
       lower_cnt = upper_cnt;
       upper_cnt = lower_cnt + bvs[i_b].getCount();
       break;
@@ -305,8 +308,8 @@ public class HistImpl {
     for(i_q=0;i_q<q_in.length;i_q++) {
       while(i_b < (used-1) && upper_cnt < q_out[i_q]) {
         i_b++;
-        bucket_width = bvs[i_b].bin.getBinWidth();
-        bucket_left = bvs[i_b].bin.getLeft();
+        bucket_width = bvs[i_b].getBinWidth();
+        bucket_left = bvs[i_b].getLeft();
         lower_cnt = upper_cnt;
         upper_cnt = lower_cnt + bvs[i_b].getCount();
       }
@@ -325,9 +328,33 @@ public class HistImpl {
     return q_out;
   }
 
+  static final NumberFormat formatter = new DecimalFormat("0.#E0");
+
+  public synchronized String[] toDecStrings() {
+    String[] out = new String[used];
+    for(int i=0;i<used;i++) {
+      out[i] = "H[" + formatter.format(bvs[i].getDouble()) + "]=" +
+               bvs[i].getCount();
+    }
+    return out;
+  }
   public synchronized HistImpl copy() {
-    HistBinCount[] slice = new HistBinCount[used];
+    HistBin[] slice = new HistBin[used];
     System.arraycopy(bvs, 0, slice, 0, used);
     return new HistImpl(slice);
+  }
+  private synchronized void swap(HistImpl other) {
+    synchronized(other) {
+      HistBin[] tmp_bvs;
+      short tmp_used, tmp_allocd;
+      tmp_bvs = this.bvs;   tmp_used = this.used;   tmp_allocd = this.allocd;
+      this.bvs = other.bvs; this.used = other.used; this.allocd = other.allocd;
+      other.bvs = tmp_bvs;  other.used = tmp_used;  other.allocd = tmp_allocd;
+    }
+  }
+  public synchronized HistImpl copyAndReset() {
+    HistImpl replacement = new HistImpl();
+    swap(replacement);
+    return replacement;
   }
 }

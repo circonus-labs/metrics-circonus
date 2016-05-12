@@ -149,4 +149,29 @@ public class HistImplTest {
            new Double[] { 0.5 },
            new Double[] { 1.1 });
   }
+
+  public final Double[] bs1 = new Double[]
+      { 0.123, 0.0, 0.00000000000001,  0.43, 0.41, 0.415,
+        0.2201, 0.3201, 0.125, 0.13, 1.987234987234E-123,
+        123987234234.23498e12 };
+  @Test
+  public void testDecString() {
+    HistImpl hist = new HistImpl();
+    for(int i=0; i<bs1.length; i++) hist.insert(bs1[i]);
+    assertArrayEquals(
+      new String[] {
+        "H[0E0]=1",
+        "H[1.9E-123]=1",
+        "H[1E-14]=1",
+        "H[1.2E-1]=2",
+        "H[1.3E-1]=1",
+        "H[2.2E-1]=1",
+        "H[3.2E-1]=1",
+        "H[4.1E-1]=2",
+        "H[4.3E-1]=1",
+        "H[1.2E23]=1"
+      },
+      hist.toDecStrings()
+    );
+  }
 }

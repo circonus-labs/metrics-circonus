@@ -11,8 +11,13 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
+import com.circonus.metrics.circonus.model.CirconusCounter;
 import com.circonus.metrics.circonus.model.CirconusGauge;
+import com.circonus.metrics.circonus.model.CirconusHistogram;
 import com.circonus.metrics.circonus.transport.Transport;
+import com.circonus.metrics.circonus.HistImpl;
+import com.circonus.metrics.circonus.HistImplContainer;
+import com.circonus.metrics.circonus.CirconusMetricRegistryAlaCoda;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +47,7 @@ public class CirconusReporter extends ScheduledReporter {
   private final List<String> tags;
   private final String prefix;
   private final DynamicTagsCallback tagsCallback;
+  private final Boolean suppress_bad_analytics;
   private Transport.Request request;
 
   private CirconusReporter(MetricRegistry metricRegistry,
@@ -55,8 +61,12 @@ public class CirconusReporter extends ScheduledReporter {
                           MetricNameFormatter metricNameFormatter,
                           List<String> tags,
                           String prefix,
-                          DynamicTagsCallback tagsCallback) {
+                          DynamicTagsCallback tagsCallback,
+                          Boolean suppress) {
     super(metricRegistry, "circonus-reporter", filter, rateUnit, durationUnit);
+    if(!(metricRegistry instanceof CirconusMetricRegistryAlaCoda)) {
+      LOG.warn("CirconusReporter started without a  CirconusMetricRegistry(AlaCoda) so no real histograms.");
+    }
     this.clock = clock;
     this.host = host;
     this.expansions = expansions;
@@ -65,6 +75,7 @@ public class CirconusReporter extends ScheduledReporter {
     this.transport = transport;
     this.prefix = prefix;
     this.tagsCallback = tagsCallback;
+    this.suppress_bad_analytics = suppress;
   }
 
   @Override
@@ -108,13 +119,22 @@ public class CirconusReporter extends ScheduledReporter {
 
       request.send();
     } catch (Throwable e) {
-      LOG.error("Error reporting metrics to Circonus", e);
+      LOG.error("Error reporting metrics to Circonus: " + e);
     }
   }
 
   private void reportTimer(String name, Timer timer, long timestamp, List<String> tags)
       throws IOException {
     final Snapshot snapshot = timer.getSnapshot();
+
+    LOG.debug("Timer[" +name + "] " + timer);
+    if(timer instanceof HistImplContainer) {
+      HistImpl take = ((HistImplContainer)timer).getHistImpl().copyAndReset();
+      LOG.debug("Adding Circonus Histogram to report: " + name);
+      request.addHistogram(new CirconusHistogram(
+            name, take, timestamp, host, tags));
+      if(suppress_bad_analytics) return;
+    }
 
     double[] values = { snapshot.getMax(), snapshot.getMean(), snapshot.getMin(), snapshot.getStdDev(),
         snapshot.getMedian(), snapshot.get75thPercentile(), snapshot.get95thPercentile(), snapshot.get98thPercentile(),
@@ -163,6 +183,14 @@ public class CirconusReporter extends ScheduledReporter {
   private void reportHistogram(String name, Histogram histogram, long timestamp, List<String> tags)
       throws IOException {
     final Snapshot snapshot = histogram.getSnapshot();
+
+    if(histogram instanceof HistImplContainer) {
+      HistImpl take = ((HistImplContainer)histogram).getHistImpl().copyAndReset();
+      LOG.debug("Adding Circonus Histogram to report: " + name);
+      request.addHistogram(new CirconusHistogram(
+            name, take, timestamp, host, tags));
+      if(suppress_bad_analytics) return;
+    }
 
     if (expansions.contains(Expansion.COUNT)) {
       request.addGauge(new CirconusGauge(
@@ -277,6 +305,7 @@ public class CirconusReporter extends ScheduledReporter {
     private Transport transport;
     private String prefix;
     private DynamicTagsCallback tagsCallback;
+    private Boolean suppress_bad_analytics;
 
     public Builder(MetricRegistry registry) {
       this.registry = registry;
@@ -287,6 +316,12 @@ public class CirconusReporter extends ScheduledReporter {
       this.filter = MetricFilter.ALL;
       this.metricNameFormatter = new DefaultMetricNameFormatter();
       this.tags = new ArrayList<String>();
+      this.suppress_bad_analytics = false;
+    }
+
+    public Builder onlyCirconusAnalytics(Boolean suppress) {
+      this.suppress_bad_analytics = true;
+      return this;
     }
 
     public Builder withHost(String host) {
@@ -366,8 +401,7 @@ public class CirconusReporter extends ScheduledReporter {
 
     public CirconusReporter build() {
       if (transport == null) {
-        throw new IllegalArgumentException("Transport for Circonus reporter is null. " +
-            "Please set a valid transport");
+        LOG.error("Transport for Circonus reporter is null. No recording!");
       }
       return new CirconusReporter(
           this.registry,
@@ -381,7 +415,8 @@ public class CirconusReporter extends ScheduledReporter {
           this.metricNameFormatter,
           this.tags,
           this.prefix,
-          this.tagsCallback);
+          this.tagsCallback,
+          this.suppress_bad_analytics);
     }
   }
 }

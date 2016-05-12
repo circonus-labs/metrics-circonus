@@ -20,6 +20,9 @@ public class CirconusReporterFactory extends BaseReporterFactory {
   @JsonProperty
   private List<String> tags = null;
 
+  @JsonProperty
+  private Boolean circonus_analytics = null;
+
   @Valid
   @NotNull
   @JsonProperty
@@ -33,6 +36,7 @@ public class CirconusReporterFactory extends BaseReporterFactory {
         .filter(getFilter())
         .convertDurationsTo(getDurationUnit())
         .convertRatesTo(getRateUnit())
+        .onlyCirconusAnalytics(circonus_analytics)
         .build();
     return reporter;
   }

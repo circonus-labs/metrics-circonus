@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.circonus.metrics.circonus.model.CirconusCounter;
 import com.circonus.metrics.circonus.model.CirconusGauge;
+import com.circonus.metrics.circonus.model.CirconusHistogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,11 @@ public class JsonSerializer implements Serializer {
   public void appendCounter(CirconusCounter counter) throws IOException {
     jsonOut.writeFieldName(counter.metric());
     MAPPER.writeValue(jsonOut, counter);
+  }
+
+  public void appendHistogram(CirconusHistogram hist) throws IOException {
+    jsonOut.writeFieldName(hist.metric());
+    MAPPER.writeValue(jsonOut, hist);
   }
 
   public void endObject() throws IOException {

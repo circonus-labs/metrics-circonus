@@ -75,13 +75,29 @@ First, add the `dropwizard-metrics-circonus` dependency in your POM:
     </dependency>
 ~~~
 
-Then just add the following to your `dropwizard` YAML config file.
+In order to collect and submit full histograms to Circonus, you need to
+use the `CirconusMetricRegistryAlaCoda` metrics registry.  This won't effect
+anything else (it acts just as the normal metric registry, but augments
+Timers and Histograms to _additionally_ keep complete histograms to send to
+Circonus).  For example, you you're sending data elsewhere on other transports
+you'll still see all the same stuff you would otherwise.
+
+~~~java
+   import com.circonus.metrics.circonus.CirconusMetricRegistryAlaCoda
+
+   ...
+
+   bootstrap.setMetricRegistry(new CirconusMetricRegistryAlaCoda());
+~~~
+
+Then add the following to your `dropwizard` YAML config file.
 
 ~~~yaml
 metrics:
   frequency: 1 minute                       # Default is 1 second.
   reporters:
     - type: circonus
+      circonus_analytics: true              # Let Circonus calculte things
       host: <host>                          # Optional with UDP Transport
       tags:                                 # Optional. Defaults to (empty)
       includes:                             # Optional. Defaults to (all).
@@ -94,7 +110,7 @@ metrics:
         protocol: https                     # Optional. Default is https
         broker: "host:port"                 # Optional. Default is trap.noit.circonus.net:443
         connectTimeout: <duration>          # Optional. Default is 5 seconds
-        socketTimeout: <duration>           # Optional. Default is 5 seconds
+        socketTimeout: <duration>           # Optional. Default is 5 secondO
 ~~~
 
 Once your `dropwizard` application starts, your metrics should start appearing

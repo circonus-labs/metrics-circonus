@@ -24,6 +24,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import com.circonus.metrics.circonus.model.CirconusCounter;
 import com.circonus.metrics.circonus.model.CirconusGauge;
+import com.circonus.metrics.circonus.model.CirconusHistogram;
 import com.circonus.metrics.serializer.JsonSerializer;
 import com.circonus.metrics.serializer.Serializer;
 import org.slf4j.Logger;
@@ -185,6 +186,10 @@ public class HttpTransport implements Transport {
 
     public void addCounter(CirconusCounter counter) throws IOException {
       serializer.appendCounter(counter);
+    }
+
+    public void addHistogram(CirconusHistogram hist) throws IOException {
+      serializer.appendHistogram(hist);
     }
 
     public void send() throws Exception {
