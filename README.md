@@ -71,7 +71,12 @@ First, add the `dropwizard-metrics-circonus` dependency in your POM:
     <dependency>
         <groupId>com.circonus</groupId>
         <artifactId>dropwizard-metrics-circonus</artifactId>
-        <version>1.1.2</version>
+        <version>1.0.0</version>
+    </dependency>
+    <dependency>
+        <groupId>com.circonus</groupId>
+        <artifactId>metrics-circonus</artifactId>
+        <version>1.0.0</version>
     </dependency>
 ~~~
 
