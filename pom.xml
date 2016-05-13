@@ -9,7 +9,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.circonus</groupId>
     <artifactId>metrics-circonus-parent</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
     <name>Circonus Metrics Parent</name>
     <url>https://github.com/circonus-labs/metrics-circonus</url>
@@ -31,7 +31,7 @@
         <connection>scm:git:git@github.com:circonus-labs/metrics-circonus.git</connection>
         <developerConnection>scm:git:git@github.com:circonus-labs/metrics-circonus.git</developerConnection>
         <url>scm:git@github.com:circonus-labs/metrics-circonus.git</url>
-      <tag>HEAD</tag>
+      <tag>metrics-circonus-parent-1.0.0</tag>
   </scm>
     <developers>
         <developer>
