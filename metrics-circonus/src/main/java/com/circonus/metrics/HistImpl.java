@@ -102,9 +102,9 @@ public class HistImpl {
         d *= 10;
         val = (byte)(sign * (int)(Math.floor(d + 1e-13)));
         if(val == 100 || val == -100) {
-          if(val > -127) {
+          if(val < 127) {
             val /= 10;
-            exp--;
+            exp++;
           } else {
             val = exp = 0;
           }
